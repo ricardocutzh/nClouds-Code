@@ -1,0 +1,190 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Creates an AWS Backup Vault and a new KMS key (shared with the Organization) to encrypt it.
+
+Parameters:
+
+  Environment:
+    Type: String
+    Description: The environment (e.g., Dev, Stage, Prod) for resource tagging.
+    Default: Dev
+    AllowedValues:
+      - Dev
+      - Stage
+      - Prod
+
+  OrganizationId:
+    Type: String
+    Description: Your AWS Organization ID (e.g., o-xxxxxxxxxx).
+    AllowedPattern: '^o-[a-z0-9]{10,32}$'
+    ConstraintDescription: Must be a valid AWS Organization ID.
+
+  Identifier:
+    Type: String
+    Description: adding resources identifiers
+
+Resources:
+
+  KmsKeyForBackup:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: !Sub 'KMS key for encrypting ${Environment} AWS Backup vaults, shareable across the organization'
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          # Statement 1: Allows full control for the root user of this account
+          - Sid: AllowFullControlForRoot
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: 'kms:*'
+            Resource: '*'
+
+          # Statement 2: Allows AWS Backup to use the key
+          - Sid: AllowBackupService
+            Effect: Allow
+            Principal:
+              Service: backup.amazonaws.com
+            Action:
+              - 'kms:DescribeKey'
+              - 'kms:Encrypt'
+              - 'kms:Decrypt'
+              - 'kms:ReEncrypt*'
+              - 'kms:GenerateDataKey*'
+              - 'kms:CreateGrant'
+            Resource: '*'
+
+          # Statement 3: Allows all principals in your AWS Organization to use the key for crypto operations
+          - Sid: AllowCryptoUseForOrganization
+            Effect: Allow
+            Principal:
+              AWS: '*'
+            Action:
+              - 'kms:*'
+              # - 'kms:Encrypt'
+              # - 'kms:Decrypt'
+              # - 'kms:ReEncrypt*'
+              # - 'kms:GenerateDataKey*'
+              # - 'kms:DescribeKey'
+            Resource: '*'
+            Condition:
+              StringEquals:
+                'aws:PrincipalOrgID': !Ref OrganizationId
+      
+      EnableKeyRotation: false
+      Tags:
+        - Key: Name
+          Value: !Sub '${Identifier}-backup-kms-key-${Environment}'
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Purpose
+          Value: 'AWS Backup Encryption'
+
+  KmsKeyAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Sub 'alias/aws-backup-key-${Environment}'
+      TargetKeyId: !Ref KmsKeyForBackup
+
+  EncryptedBackupVault:
+    Type: AWS::Backup::BackupVault
+    Properties:
+      BackupVaultName: !Sub '${Identifier}-backup-vault-${Environment}'
+      # Reference the ARN of the KMS key created in this template
+      EncryptionKeyArn: !GetAtt KmsKeyForBackup.Arn
+      AccessPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Sid: "AssociaITOps"
+            Principal:
+              AWS: !Sub 'arn:aws:iam::800546357686:role/CustomBackupServiceRole' # access to Associa IT Ops account
+            Action: 'backup:CopyIntoBackupVault'
+            Resource: "*"
+          - Effect: Allow
+            Sid: "AssociaProd"
+            Principal:
+              AWS: !Sub 'arn:aws:iam::990716674038:role/CustomBackupServiceRole' # access to Associa Prod account
+            Action: 'backup:CopyIntoBackupVault'
+            Resource: "*"
+          - Effect: Allow
+            Sid: "atgprod"
+            Principal:
+              AWS: !Sub 'arn:aws:iam::292535495136:role/CustomBackupServiceRole' # access to atg-prod account
+            Action: 'backup:CopyIntoBackupVault'
+            Resource: "*"
+          - Effect: Allow
+            Sid: "caprod"
+            Principal:
+              AWS: !Sub 'arn:aws:iam::202712837174:role/CustomBackupServiceRole' # access to ca-prod account
+            Action: 'backup:CopyIntoBackupVault'
+            Resource: "*"
+          - Effect: Allow
+            Sid: "cm4prod"
+            Principal:
+              AWS: !Sub 'arn:aws:iam::807862920466:role/CustomBackupServiceRole' # access to cm4-prod account
+            Action: 'backup:CopyIntoBackupVault'
+            Resource: "*"
+          - Effect: Allow
+            Sid: "InspireFlexProd"
+            Principal:
+              AWS: !Sub 'arn:aws:iam::685199831702:role/CustomBackupServiceRole' # access to InspireFlexProd account
+            Action: 'backup:CopyIntoBackupVault'
+            Resource: "*"
+          - Effect: Allow
+            Sid: "TownSqDataLakePRODBR"
+            Principal:
+              AWS: !Sub 'arn:aws:iam::882911022311:role/CustomBackupServiceRole' # access to TownSq Data Lake PROD BR account
+            Action: 'backup:CopyIntoBackupVault'
+            Resource: "*"
+          - Effect: Allow
+            Sid: "TownSqDataLakePRODUS"
+            Principal:
+              AWS: !Sub 'arn:aws:iam::593422936395:role/CustomBackupServiceRole' # access to TownSq Data Lake PROD US account
+            Action: 'backup:CopyIntoBackupVault'
+            Resource: "*"
+          - Effect: Allow
+            Sid: "TownSqDL&Analytics"
+            Principal:
+              AWS: !Sub 'arn:aws:iam::946673994046:role/CustomBackupServiceRole' # access to TownSq DL & Analytics account
+            Action: 'backup:CopyIntoBackupVault'
+            Resource: "*"
+          - Effect: Allow
+            Sid: "TownSqProdBR"
+            Principal:
+              AWS: !Sub 'arn:aws:iam::160025863434:role/CustomBackupServiceRole' # access to TownSq Prod BR account
+            Action: 'backup:CopyIntoBackupVault'
+            Resource: "*"
+          - Effect: Allow
+            Sid: "TownSqProdUS"
+            Principal:
+              AWS: !Sub 'arn:aws:iam::800654046387:role/CustomBackupServiceRole' # access to TownSq Prod US account
+            Action: 'backup:CopyIntoBackupVault'
+            Resource: "*"
+          - Effect: Allow
+            Sid: "TownSqSharedServices"
+            Principal:
+              AWS: !Sub 'arn:aws:iam::395174433435:role/CustomBackupServiceRole' # access to TownSq Shared Services account
+            Action: 'backup:CopyIntoBackupVault'
+            Resource: "*"
+
+Outputs:
+
+  BackupVaultName:
+    Description: The name of the created Backup Vault.
+    Value: !Ref EncryptedBackupVault
+  
+  BackupVaultArn:
+    Description: The ARN of the created Backup Vault.
+    Value: !GetAtt EncryptedBackupVault.BackupVaultArn
+
+  KmsKeyId:
+    Description: The ID of the KMS key
+    Value: !Ref KmsKeyForBackup
+  
+  KmsKeyArn:
+    Description: The ARN of the KMS key
+    Value: !GetAtt KmsKeyForBackup.Arn
+
+  KmsKeyAliasName:
+    Description: The alias of the KMS key
+    Value: !Ref KmsKeyAlias
