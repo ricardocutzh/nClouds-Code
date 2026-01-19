@@ -1,0 +1,61 @@
+{
+  "plans": {
+    "RDS-DAILY-BACKUP-PLAN": {
+      "regions": {
+        "@@assign": [
+          "ca-central-1",
+          "us-west-1",
+          "us-west-2",
+          "us-east-1",
+          "us-east-2",
+          "sa-east-1"
+        ]
+      },
+      "rules": {
+        "DAILY-35-DAY-RETENTION": {
+          "lifecycle": {
+            "delete_after_days": {
+              "@@assign": "35"
+            }
+          },
+          "target_backup_vault_name": {
+            "@@assign": "source-backup-vault-Dev"
+          },
+          "enable_continuous_backup": {
+            "@@assign": true
+          },
+          "copy_actions": {
+            "arn:aws:backup:us-west-2:137708847303:backup-vault:audit-dev-backup-vault-Dev": {
+              "target_backup_vault_arn": {
+                "@@assign": "arn:aws:backup:us-west-2:137708847303:backup-vault:audit-dev-backup-vault-Dev"
+              },
+              "lifecycle": {
+                "delete_after_days": {
+                  "@@assign": "7"
+                },
+                "opt_in_to_archive_for_supported_resources": {
+                  "@@assign": "false"
+                }
+              }
+            }
+          }
+        }
+      },
+      "selections": {
+        "resources": {
+          "PRD-RDS": {
+            "iam_role_arn": {
+              "@@assign": "arn:aws:iam::$account:role/CustomBackupServiceRole"
+            },
+            "resource_types": {
+              "@@assign": [
+                "arn:aws:rds:*:*:db:*",
+                "arn:aws:rds:*:*:cluster:*"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

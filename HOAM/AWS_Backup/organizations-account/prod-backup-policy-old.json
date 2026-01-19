@@ -1,0 +1,46 @@
+{
+  "plans": {
+    "RDS-DAILY-BACKUP-PLAN": {
+      "regions": {
+        "@@assign": [
+          "ca-central-1",
+          "us-west-1",
+          "us-west-2",
+          "us-east-1",
+          "us-east-2",
+          "sa-east-1"
+        ]
+      },
+      "rules": {
+        "DAILY-35-DAY-RETENTION": {
+          "lifecycle": {
+            "delete_after_days": {
+              "@@assign": "35"
+            }
+          },
+          "target_backup_vault_name": {
+            "@@assign": "Default"
+          },
+          "enable_continuous_backup": {
+            "@@assign": true
+          }
+        }
+      },
+      "selections": {
+        "resources": {
+          "PRD-RDS": {
+            "iam_role_arn": {
+              "@@assign": "arn:aws:iam::$account:role/CustomBackupServiceRole"
+            },
+            "resource_types": {
+              "@@assign": [
+                "arn:aws:rds:*:*:db:*",
+                "arn:aws:rds:*:*:cluster:*"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

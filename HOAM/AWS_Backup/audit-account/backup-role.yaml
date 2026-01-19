@@ -1,0 +1,46 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'IAM Role for AWS Backup with Backup and Restore permissions'
+
+Resources:
+  AWSBackupServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: CustomBackupServiceRole
+      Description: 'Service role for AWS Backup with backup and restore permissions'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: backup.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup
+        - arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForRestores
+      Policies:
+        - PolicyName: RDSBackupPermissions
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - rds:DescribeDBInstances
+                  - rds:DescribeDBClusters
+                  - rds:ListTagsForResource
+                  - rds:RestoreDBInstanceFromDBSnapshot
+                  - rds:RestoreDBClusterFromSnapshot
+                Resource: "*"
+        - PolicyName: CrossAccountBackupPermissions
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sts:AssumeRole
+                Resource: 
+                  - "arn:aws:iam::*:role/AWSBackupDefaultServiceRole"
+
+Outputs:
+  BackupRoleARN:
+    Description: "ARN of the AWS Backup service role"
+    Value: !GetAtt AWSBackupServiceRole.Arn
