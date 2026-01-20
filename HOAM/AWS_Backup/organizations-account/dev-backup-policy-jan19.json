@@ -15,14 +15,26 @@
         "DAILY-35-DAY-RETENTION": {
           "lifecycle": {
             "delete_after_days": {
-              "@@assign": "35"
+              "@@assign": "1"
             }
           },
           "target_backup_vault_name": {
-            "@@assign": "Default"
+            "@@assign": "source-backup-vault-Dev"
           },
           "enable_continuous_backup": {
             "@@assign": true
+          },
+          "copy_actions": {
+            "arn:aws:backup:us-east-1:$account:backup-vault:intermediate-backup-vault-Dev": {
+              "target_backup_vault_arn": {
+                "@@assign": "arn:aws:backup:us-east-1:$account:backup-vault:intermediate-backup-vault-Dev"
+              },
+              "lifecycle": {
+                "delete_after_days": {
+                  "@@assign": "7"
+                }
+              }
+            }
           }
         }
       },
