@@ -45,12 +45,7 @@ Resources:
             Principal:
               Service: backup.amazonaws.com
             Action:
-              - 'kms:DescribeKey'
-              - 'kms:Encrypt'
-              - 'kms:Decrypt'
-              - 'kms:ReEncrypt*'
-              - 'kms:GenerateDataKey*'
-              - 'kms:CreateGrant'
+              - 'kms:*''
             Resource: '*'
 
           # Statement 3: Allows all principals in your AWS Organization to use the key for crypto operations
