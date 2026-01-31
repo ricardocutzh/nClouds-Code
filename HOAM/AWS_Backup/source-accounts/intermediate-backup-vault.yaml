@@ -22,6 +22,29 @@ Parameters:
     Type: String
     Description: adding resources identifiers
 
+  # New parameters for the Copy Logic
+  SecondaryVaultArn:
+    Type: String
+    Description: The ARN of the destination vault where backups should be copied upon completion.
+    Default: ""
+
+  BackupServiceRoleArn:
+    Type: String
+    Description: The ARN of the IAM Role that AWS Backup should use to perform the copy.
+
+  EnableCopyTrigger:
+    Type: String
+    Description: Set to 'true' to enable automatic copying of completed backups.
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+
+  DestinationRetentionDays:
+    Type: Number
+    Description: The number of days to retain the backup copy in the secondary vault.
+    Default: 30
+
 Resources:
 
   KmsKeyForBackup:
@@ -89,6 +112,93 @@ Resources:
               AWS: !Sub 'arn:aws:iam::137708847303:role/CustomBackupServiceRole' # giving access to the role in the AUDIT account
             Action: 'backup:CopyIntoBackupVault'
             Resource: "*"
+
+  # ---------------------------------------------------------
+  # Lambda Logger Resources
+  # ---------------------------------------------------------
+
+  BackupLoggerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      # Added inline policy to allow the Lambda to trigger AWS Backup copy jobs
+      Policies:
+        - PolicyName: AllowBackupCopyTrigger
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: backup:StartCopyJob
+                Resource: "*"
+              - Effect: Allow
+                Action: iam:PassRole
+                Resource: !Ref BackupServiceRoleArn
+
+  BackupLoggerFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${Identifier}-backup-logger-${Environment}'
+      Handler: index.handler
+      Role: !GetAtt BackupLoggerRole.Arn
+      Runtime: python3.9
+      Timeout: 30
+      Environment:
+        Variables:
+          SECONDARY_VAULT_ARN: !Ref SecondaryVaultArn
+          BACKUP_SERVICE_ROLE_ARN: !Ref BackupServiceRoleArn
+          ENABLE_COPY_TRIGGER: !Ref EnableCopyTrigger
+          DESTINATION_RETENTION_DAYS: !Ref DestinationRetentionDays
+      Code:
+        ZipFile: |
+          import json
+          import logging
+          import os
+          import boto3
+
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+          backup_client = boto3.client('backup')
+
+          def handler(event, context):
+              # 1. Log the incoming event
+              print("BACKUP_EVENT: " + json.dumps(event))
+
+  BackupLoggerPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref BackupLoggerFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt BackupVaultMonitorRule.Arn
+
+  BackupVaultMonitorRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub '${Identifier}-backup-monitor-rule-${Environment}'
+      Description: "Detects all AWS Backup events (any state) for this specific vault."
+      EventPattern:
+        source:
+          - aws.backup
+        detail-type:
+          - "Backup Job State Change"
+          # - "Restore Job State Change"
+          - "Recovery Point State Change"
+          - "Copy Job State Change"
+        detail:
+          # Removed specific 'state' filter to catch ALL states (CREATED, RUNNING, COMPLETED, FAILED, etc.)
+          backupVaultArn:
+            - !GetAtt EncryptedBackupVault.BackupVaultArn
+      Targets:
+        - Arn: !GetAtt BackupLoggerFunction.Arn
+          Id: "BackupLoggerTarget"
 
 Outputs:
 

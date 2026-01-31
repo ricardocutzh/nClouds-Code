@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Creates an AWS Backup Vault and a new KMS key (shared with the Organization) to encrypt it.
+Description: Creates an AWS Backup Vault, KMS Key, and EventBridge monitoring that triggers a cross-region Lambda on copy completion.
 
 Parameters:
 
@@ -21,6 +21,15 @@ Parameters:
   Identifier:
     Type: String
     Description: adding resources identifiers
+
+  # New parameters for Cross-Region Lambda Trigger
+  TargetLambdaArn:
+    Type: String
+    Description: The ARN of the Lambda function in the other region that receives the copy job data.
+
+  TargetRegion:
+    Type: String
+    Description: The AWS Region where the target Lambda is located (e.g., us-west-2).
 
 Resources:
 
@@ -45,7 +54,7 @@ Resources:
             Principal:
               Service: backup.amazonaws.com
             Action:
-              - 'kms:*''
+              - 'kms:*'
             Resource: '*'
 
           # Statement 3: Allows all principals in your AWS Organization to use the key for crypto operations
@@ -89,6 +98,123 @@ Resources:
               AWS: !Sub 'arn:aws:iam::137708847303:role/CustomBackupServiceRole' # giving access to the role in the AUDIT account
             Action: 'backup:CopyIntoBackupVault'
             Resource: "*"
+
+  # ---------------------------------------------------------
+  # Lambda Forwarder Resources
+  # ---------------------------------------------------------
+
+  BackupLoggerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      # Added inline policy to allow the Lambda to invoke the remote function
+      Policies:
+        - PolicyName: AllowRemoteLambdaInvoke
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !Ref TargetLambdaArn
+
+  BackupLoggerFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${Identifier}-backup-logger-${Environment}'
+      Handler: index.handler
+      Role: !GetAtt BackupLoggerRole.Arn
+      Runtime: python3.9
+      Timeout: 30
+      Environment:
+        Variables:
+          TARGET_LAMBDA_ARN: !Ref TargetLambdaArn
+          TARGET_REGION: !Ref TargetRegion
+      Code:
+        ZipFile: |
+          import json
+          import logging
+          import os
+          import boto3
+
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+
+          def handler(event, context):
+              # 1. Log the incoming event
+              print("RECEIVED_EVENT: " + json.dumps(event))
+
+              # 2. Initialize Client for Target Region
+              target_region = os.environ.get('TARGET_REGION')
+              target_arn = os.environ.get('TARGET_LAMBDA_ARN')
+              
+              if not (target_region and target_arn):
+                  logger.error("Missing TARGET_REGION or TARGET_LAMBDA_ARN environment variables.")
+                  return {'statusCode': 500, 'body': 'Configuration Error'}
+
+              lambda_client = boto3.client('lambda', region_name=target_region)
+
+              # 3. Check for specific event type (Copy Job Completed)
+              detail = event.get('detail', {})
+              detail_type = event.get('detail-type')
+              state = detail.get('state')
+              
+              # We only want to trigger the remote lambda if a Copy Job successfully landed in this vault
+              if detail_type == "Copy Job State Change" and state == 'COMPLETED':
+                  logger.info(f"Copy Job Completed. Invoking remote lambda: {target_arn} in {target_region}")
+                  
+                  try:
+                      # Invoke the remote lambda asynchronously (Event type)
+                      response = lambda_client.invoke(
+                          FunctionName=target_arn,
+                          InvocationType='Event',
+                          Payload=json.dumps(event)
+                      )
+                      logger.info(f"Remote invocation initiated. Status Code: {response['StatusCode']}")
+                      return {'statusCode': 200, 'body': 'Remote Lambda Invoked'}
+                      
+                  except Exception as e:
+                      logger.error(f"Failed to invoke remote lambda: {str(e)}")
+                      raise e
+              
+              else:
+                  logger.info("Event is not a completed Copy Job. Skipping remote invocation.")
+                  return {'statusCode': 200, 'body': 'Skipped'}
+
+  # New Rule: Detects incoming Copy Jobs that land in this vault
+  BackupVaultCopyMonitorRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub '${Identifier}-copy-monitor-rule-${Environment}'
+      Description: "Detects Copy Jobs where this vault is the destination."
+      EventPattern:
+        source:
+          - aws.backup
+        detail-type:
+          - "Copy Job State Change"
+        # detail:
+        #   # For copies, we must check the DESTINATION vault ARN, not the source
+        #   destinationBackupVaultArn:
+        #     - !GetAtt EncryptedBackupVault.BackupVaultArn
+      Targets:
+        - Arn: !GetAtt BackupLoggerFunction.Arn
+          Id: "BackupLoggerTarget"
+
+  # Permission for the new Copy Monitor Rule to invoke the Lambda
+  BackupCopyLoggerPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref BackupLoggerFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt BackupVaultCopyMonitorRule.Arn
 
 Outputs:
 
