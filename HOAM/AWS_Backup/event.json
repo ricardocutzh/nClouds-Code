@@ -1,0 +1,34 @@
+{
+    "version": "0",
+    "id": "173f0bed-760b-dee7-d816-5284c0ca60d4",
+    "detail-type": "Copy Job State Change",
+    "source": "aws.backup",
+    "account": "993747506679",
+    "time": "2026-01-31T00:06:20Z",
+    "region": "us-west-2",
+    "resources": [
+        "arn:aws:rds:us-west-2:993747506679:cluster-snapshot:awsbackup:job-239db13c-b63c-4b32-ad4c-3b4304a4fef2"
+    ],
+    "detail": {
+        "copyJobId": "64397118-2696-463f-a755-55aa850e389e",
+        "backupSizeInBytes": 0,
+        "creationDate": "2026-01-30T23:41:31.602Z",
+        "iamRoleArn": "arn:aws:iam::993747506679:role/CustomBackupServiceRole",
+        "resourceArn": "arn:aws:rds:us-west-2:993747506679:cluster:restore-backup-test-default-kms",
+        "resourceType": "Aurora",
+        "sourceBackupVaultArn": "arn:aws:backup:us-west-2:993747506679:backup-vault:source-backup-vault-Dev",
+        "state": "COMPLETED",
+        "completionDate": "2026-01-31T00:06:19.072Z",
+        "destinationBackupVaultArn": "arn:aws:backup:us-east-1:993747506679:backup-vault:intermediate-backup-vault-Dev",
+        "destinationRecoveryPointArn": "arn:aws:rds:us-east-1:993747506679:cluster-snapshot:awsbackup:copyjob-64397118-2696-463f-a755-55aa850e389e",
+        "isParent": false,
+        "resourceName": "restore-backup-test-default-kms",
+        "messageCategory": "Optional[SUCCESS]",
+        "destinationEncryptionKeyArn": "Optional[arn:aws:kms:us-east-1:993747506679:key/4ca41cc1-01b0-4193-a8e5-211e1f3e0ff5]",
+        "destinationVaultLockState": "NOT_LOCKED",
+        "destinationVaultType": "BACKUP_VAULT",
+        "destinationRecoveryPointLifecycle": {
+            "deleteAfterDays": 1
+        }
+    }
+}

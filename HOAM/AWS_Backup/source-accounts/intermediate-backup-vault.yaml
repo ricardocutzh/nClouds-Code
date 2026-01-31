@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Creates an AWS Backup Vault and a new KMS key (shared with the Organization) to encrypt it.
+Description: Creates an AWS Backup Vault and a Lambda that triggers a subsequent copy to another account upon backup receipt.
 
 Parameters:
 
@@ -25,12 +25,12 @@ Parameters:
   # New parameters for the Copy Logic
   SecondaryVaultArn:
     Type: String
-    Description: The ARN of the destination vault where backups should be copied upon completion.
+    Description: The ARN of the destination vault (in the third account) where the backup should be forwarded.
     Default: ""
 
   BackupServiceRoleArn:
     Type: String
-    Description: The ARN of the IAM Role that AWS Backup should use to perform the copy.
+    Description: The ARN of the IAM Role used for permissions (must match the role used in the event for PassRole validation).
 
   EnableCopyTrigger:
     Type: String
@@ -114,7 +114,7 @@ Resources:
             Resource: "*"
 
   # ---------------------------------------------------------
-  # Lambda Logger Resources
+  # Lambda Resources
   # ---------------------------------------------------------
 
   BackupLoggerRole:
@@ -153,7 +153,6 @@ Resources:
       Environment:
         Variables:
           SECONDARY_VAULT_ARN: !Ref SecondaryVaultArn
-          BACKUP_SERVICE_ROLE_ARN: !Ref BackupServiceRoleArn
           ENABLE_COPY_TRIGGER: !Ref EnableCopyTrigger
           DESTINATION_RETENTION_DAYS: !Ref DestinationRetentionDays
       Code:
@@ -168,37 +167,68 @@ Resources:
           backup_client = boto3.client('backup')
 
           def handler(event, context):
-              # 1. Log the incoming event
-              print("BACKUP_EVENT: " + json.dumps(event))
+              print("RECEIVED_EVENT: " + json.dumps(event))
 
-  BackupLoggerPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !Ref BackupLoggerFunction
-      Principal: events.amazonaws.com
-      SourceArn: !GetAtt BackupVaultMonitorRule.Arn
+              # 1. Check Feature Flag
+              if os.environ.get('ENABLE_COPY_TRIGGER', 'false').lower() != 'true':
+                  logger.info("Copy trigger is DISABLED via environment variable.")
+                  return {'statusCode': 200, 'body': 'Copy disabled'}
 
-  BackupVaultMonitorRule:
-    Type: AWS::Events::Rule
-    Properties:
-      Name: !Sub '${Identifier}-backup-monitor-rule-${Environment}'
-      Description: "Detects all AWS Backup events (any state) for this specific vault."
-      EventPattern:
-        source:
-          - aws.backup
-        detail-type:
-          - "Backup Job State Change"
-          # - "Restore Job State Change"
-          - "Recovery Point State Change"
-          - "Copy Job State Change"
-        detail:
-          # Removed specific 'state' filter to catch ALL states (CREATED, RUNNING, COMPLETED, FAILED, etc.)
-          backupVaultArn:
-            - !GetAtt EncryptedBackupVault.BackupVaultArn
-      Targets:
-        - Arn: !GetAtt BackupLoggerFunction.Arn
-          Id: "BackupLoggerTarget"
+              detail = event.get('detail', {})
+              detail_type = event.get('detail-type')
+              state = detail.get('state')
+
+              # 2. Check for Completed Copy Job
+              # We expect "Copy Job State Change" and state "COMPLETED"
+              if detail_type != "Copy Job State Change" or state != "COMPLETED":
+                  logger.info("Event is not a completed Copy Job. Skipping.")
+                  return {'statusCode': 200, 'body': 'Skipped'}
+
+              # 3. Extract Info from Event
+              # The 'destinationRecoveryPointArn' from the event is the SOURCE for our new copy job
+              source_recovery_point_arn = detail.get('destinationRecoveryPointArn')
+              iam_role_arn = detail.get('iamRoleArn')
+              
+              # We need the source vault NAME. The event gives us the destinationBackupVaultArn
+              # because this event signifies the data just arrived here.
+              current_vault_arn = detail.get('destinationBackupVaultArn')
+
+              if not (source_recovery_point_arn and iam_role_arn and current_vault_arn):
+                  logger.error("Missing required fields (recoveryPointArn, iamRole, or vaultArn) in event.")
+                  return {'statusCode': 400, 'body': 'Invalid Event Data'}
+
+              # Parse vault name from ARN (arn:aws:backup:region:account:backup-vault:name)
+              try:
+                  source_vault_name = current_vault_arn.split(':')[-1]
+              except IndexError:
+                  logger.error(f"Could not parse vault name from ARN: {current_vault_arn}")
+                  return {'statusCode': 400, 'body': 'Invalid Vault ARN'}
+
+              # 4. Get Configuration
+              target_vault_arn = os.environ.get('SECONDARY_VAULT_ARN')
+              retention_days = int(os.environ.get('DESTINATION_RETENTION_DAYS', '30'))
+
+              if not target_vault_arn:
+                  logger.error("SECONDARY_VAULT_ARN is not set.")
+                  return {'statusCode': 500, 'body': 'Missing Target Config'}
+
+              # 5. Trigger the Next Copy Job
+              try:
+                  logger.info(f"Starting chained copy for {source_recovery_point_arn} to {target_vault_arn}")
+                  response = backup_client.start_copy_job(
+                      RecoveryPointArn=source_recovery_point_arn,
+                      SourceBackupVaultName=source_vault_name,
+                      DestinationBackupVaultArn=target_vault_arn,
+                      IamRoleArn=iam_role_arn,
+                      Lifecycle={
+                          'DeleteAfterDays': retention_days
+                      }
+                  )
+                  logger.info(f"Chained Copy Job Started: {response['CopyJobId']}")
+                  return {'statusCode': 200, 'body': f"Copy started: {response['CopyJobId']}"}
+              except Exception as e:
+                  logger.error(f"Failed to start copy job: {str(e)}")
+                  raise e
 
 Outputs:
 
