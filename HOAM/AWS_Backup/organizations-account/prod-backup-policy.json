@@ -15,23 +15,23 @@
         "DAILY-35-DAY-RETENTION": {
           "lifecycle": {
             "delete_after_days": {
-              "@@assign": "35"
+              "@@assign": "7"
             }
           },
           "target_backup_vault_name": {
-            "@@assign": "source-backup-vault-Prod "
+            "@@assign": "source-backup-vault-Prod"
           },
           "enable_continuous_backup": {
-            "@@assign": true
+            "@@assign": false
           },
           "copy_actions": {
-            "arn:aws:backup:us-west-2:137708847303:backup-vault:audit-prod-backup-vault-Prod": {
+            "arn:aws:backup:us-east-1:$account:backup-vault:intermediate-backup-vault-Prod": {
               "target_backup_vault_arn": {
-                "@@assign": "arn:aws:backup:us-west-2:137708847303:backup-vault:audit-prod-backup-vault-Prod"
+                "@@assign": "arn:aws:backup:us-east-1:$account:backup-vault:intermediate-backup-vault-Prod"
               },
               "lifecycle": {
                 "delete_after_days": {
-                  "@@assign": "7"
+                  "@@assign": "35"
                 },
                 "opt_in_to_archive_for_supported_resources": {
                   "@@assign": "false"

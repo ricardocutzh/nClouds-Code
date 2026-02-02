@@ -23,12 +23,13 @@ Parameters:
     Description: adding resources identifiers
 
   # New parameters for Cross-Region Lambda Trigger
-  TargetLambdaArn:
-    Type: String
-    Description: The ARN of the Lambda function in the other region that receives the copy job data.
+  # TargetLambdaArn:
+  #   Type: String
+  #   Description: The ARN of the Lambda function in the other region that receives the copy job data.
 
   TargetRegion:
     Type: String
+    Default: "us-east-1"
     Description: The AWS Region where the target Lambda is located (e.g., us-west-2).
 
 Resources:
@@ -123,7 +124,7 @@ Resources:
             Statement:
               - Effect: Allow
                 Action: lambda:InvokeFunction
-                Resource: !Ref TargetLambdaArn
+                Resource: !Sub "arn:aws:lambda:${TargetRegion}:${AWS::AccountId}:function:intermediate-backup-logger-${Environment}"
 
   BackupLoggerFunction:
     Type: AWS::Lambda::Function
@@ -135,7 +136,7 @@ Resources:
       Timeout: 30
       Environment:
         Variables:
-          TARGET_LAMBDA_ARN: !Ref TargetLambdaArn
+          TARGET_LAMBDA_ARN: !Sub "arn:aws:lambda:${TargetRegion}:${AWS::AccountId}:function:intermediate-backup-logger-${Environment}"
           TARGET_REGION: !Ref TargetRegion
       Code:
         ZipFile: |
