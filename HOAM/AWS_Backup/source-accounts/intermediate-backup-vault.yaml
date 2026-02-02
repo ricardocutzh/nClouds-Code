@@ -28,9 +28,9 @@ Parameters:
     Description: The ARN of the destination vault (in the third account) where the backup should be forwarded.
     Default: ""
 
-  BackupServiceRoleArn:
-    Type: String
-    Description: The ARN of the IAM Role used for permissions (must match the role used in the event for PassRole validation).
+  # BackupServiceRoleArn:
+  #   Type: String
+  #   Description: The ARN of the IAM Role used for permissions (must match the role used in the event for PassRole validation).
 
   EnableCopyTrigger:
     Type: String
@@ -140,7 +140,7 @@ Resources:
                 Resource: "*"
               - Effect: Allow
                 Action: iam:PassRole
-                Resource: !Ref BackupServiceRoleArn
+                Resource: !Sub "arn:aws:iam::${AWS::AccountId}:role/CustomBackupServiceRole"
 
   BackupLoggerFunction:
     Type: AWS::Lambda::Function
