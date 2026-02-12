@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Creates an AWS Backup Vault, KMS Key, and EventBridge monitoring that triggers a cross-region Lambda on copy completion.
+Description: Creates an AWS Backup Vault and a Lambda that triggers a subsequent copy to another account upon backup receipt.
 
 Parameters:
 
@@ -22,15 +22,28 @@ Parameters:
     Type: String
     Description: adding resources identifiers
 
-  # New parameters for Cross-Region Lambda Trigger
-  # TargetLambdaArn:
-  #   Type: String
-  #   Description: The ARN of the Lambda function in the other region that receives the copy job data.
-
-  TargetRegion:
+  # New parameters for the Copy Logic
+  SecondaryVaultArn:
     Type: String
-    Default: "us-east-1"
-    Description: The AWS Region where the target Lambda is located (e.g., us-west-2).
+    Description: The ARN of the destination vault (in the third account) where the backup should be forwarded.
+    Default: ""
+
+  # BackupServiceRoleArn:
+  #   Type: String
+  #   Description: The ARN of the IAM Role used for permissions (must match the role used in the event for PassRole validation).
+
+  EnableCopyTrigger:
+    Type: String
+    Description: Set to 'true' to enable automatic copying of completed backups.
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+
+  DestinationRetentionDays:
+    Type: Number
+    Description: The number of days to retain the backup copy in the secondary vault.
+    Default: 30
 
 Resources:
 
@@ -82,7 +95,7 @@ Resources:
   KmsKeyAlias:
     Type: AWS::KMS::Alias
     Properties:
-      AliasName: !Sub 'alias/aws-backup-key-${Environment}'
+      AliasName: !Sub 'alias/aws-backup-key-${Identifier}-${Environment}'
       TargetKeyId: !Ref KmsKeyForBackup
 
   EncryptedBackupVault:
@@ -101,7 +114,7 @@ Resources:
             Resource: "*"
 
   # ---------------------------------------------------------
-  # Lambda Forwarder Resources
+  # Lambda Resources
   # ---------------------------------------------------------
 
   BackupLoggerRole:
@@ -116,15 +129,18 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-      # Added inline policy to allow the Lambda to invoke the remote function
+      # Added inline policy to allow the Lambda to trigger AWS Backup copy jobs
       Policies:
-        - PolicyName: AllowRemoteLambdaInvoke
+        - PolicyName: AllowBackupCopyTrigger
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
               - Effect: Allow
-                Action: lambda:InvokeFunction
-                Resource: !Sub "arn:aws:lambda:${TargetRegion}:${AWS::AccountId}:function:intermediate-backup-logger-${Environment}"
+                Action: backup:StartCopyJob
+                Resource: "*"
+              - Effect: Allow
+                Action: iam:PassRole
+                Resource: !Sub "arn:aws:iam::${AWS::AccountId}:role/CustomBackupServiceRole"
 
   BackupLoggerFunction:
     Type: AWS::Lambda::Function
@@ -136,8 +152,9 @@ Resources:
       Timeout: 30
       Environment:
         Variables:
-          TARGET_LAMBDA_ARN: !Sub "arn:aws:lambda:${TargetRegion}:${AWS::AccountId}:function:intermediate-backup-logger-${Environment}"
-          TARGET_REGION: !Ref TargetRegion
+          SECONDARY_VAULT_ARN: !Ref SecondaryVaultArn
+          ENABLE_COPY_TRIGGER: !Ref EnableCopyTrigger
+          DESTINATION_RETENTION_DAYS: !Ref DestinationRetentionDays
       Code:
         ZipFile: |
           import json
@@ -147,75 +164,71 @@ Resources:
 
           logger = logging.getLogger()
           logger.setLevel(logging.INFO)
+          backup_client = boto3.client('backup')
 
           def handler(event, context):
-              # 1. Log the incoming event
               print("RECEIVED_EVENT: " + json.dumps(event))
 
-              # 2. Initialize Client for Target Region
-              target_region = os.environ.get('TARGET_REGION')
-              target_arn = os.environ.get('TARGET_LAMBDA_ARN')
-              
-              if not (target_region and target_arn):
-                  logger.error("Missing TARGET_REGION or TARGET_LAMBDA_ARN environment variables.")
-                  return {'statusCode': 500, 'body': 'Configuration Error'}
+              # 1. Check Feature Flag
+              if os.environ.get('ENABLE_COPY_TRIGGER', 'false').lower() != 'true':
+                  logger.info("Copy trigger is DISABLED via environment variable.")
+                  return {'statusCode': 200, 'body': 'Copy disabled'}
 
-              lambda_client = boto3.client('lambda', region_name=target_region)
-
-              # 3. Check for specific event type (Copy Job Completed)
               detail = event.get('detail', {})
               detail_type = event.get('detail-type')
               state = detail.get('state')
-              
-              # We only want to trigger the remote lambda if a Copy Job successfully landed in this vault
-              if detail_type == "Copy Job State Change" and state == 'COMPLETED':
-                  logger.info(f"Copy Job Completed. Invoking remote lambda: {target_arn} in {target_region}")
-                  
-                  try:
-                      # Invoke the remote lambda asynchronously (Event type)
-                      response = lambda_client.invoke(
-                          FunctionName=target_arn,
-                          InvocationType='Event',
-                          Payload=json.dumps(event)
-                      )
-                      logger.info(f"Remote invocation initiated. Status Code: {response['StatusCode']}")
-                      return {'statusCode': 200, 'body': 'Remote Lambda Invoked'}
-                      
-                  except Exception as e:
-                      logger.error(f"Failed to invoke remote lambda: {str(e)}")
-                      raise e
-              
-              else:
-                  logger.info("Event is not a completed Copy Job. Skipping remote invocation.")
+
+              # 2. Check for Completed Copy Job
+              # We expect "Copy Job State Change" and state "COMPLETED"
+              if detail_type != "Copy Job State Change" or state != "COMPLETED":
+                  logger.info("Event is not a completed Copy Job. Skipping.")
                   return {'statusCode': 200, 'body': 'Skipped'}
 
-  # New Rule: Detects incoming Copy Jobs that land in this vault
-  BackupVaultCopyMonitorRule:
-    Type: AWS::Events::Rule
-    Properties:
-      Name: !Sub '${Identifier}-copy-monitor-rule-${Environment}'
-      Description: "Detects Copy Jobs where this vault is the destination."
-      EventPattern:
-        source:
-          - aws.backup
-        detail-type:
-          - "Copy Job State Change"
-        # detail:
-        #   # For copies, we must check the DESTINATION vault ARN, not the source
-        #   destinationBackupVaultArn:
-        #     - !GetAtt EncryptedBackupVault.BackupVaultArn
-      Targets:
-        - Arn: !GetAtt BackupLoggerFunction.Arn
-          Id: "BackupLoggerTarget"
+              # 3. Extract Info from Event
+              # The 'destinationRecoveryPointArn' from the event is the SOURCE for our new copy job
+              source_recovery_point_arn = detail.get('destinationRecoveryPointArn')
+              iam_role_arn = detail.get('iamRoleArn')
+              
+              # We need the source vault NAME. The event gives us the destinationBackupVaultArn
+              # because this event signifies the data just arrived here.
+              current_vault_arn = detail.get('destinationBackupVaultArn')
 
-  # Permission for the new Copy Monitor Rule to invoke the Lambda
-  BackupCopyLoggerPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !Ref BackupLoggerFunction
-      Principal: events.amazonaws.com
-      SourceArn: !GetAtt BackupVaultCopyMonitorRule.Arn
+              if not (source_recovery_point_arn and iam_role_arn and current_vault_arn):
+                  logger.error("Missing required fields (recoveryPointArn, iamRole, or vaultArn) in event.")
+                  return {'statusCode': 400, 'body': 'Invalid Event Data'}
+
+              # Parse vault name from ARN (arn:aws:backup:region:account:backup-vault:name)
+              try:
+                  source_vault_name = current_vault_arn.split(':')[-1]
+              except IndexError:
+                  logger.error(f"Could not parse vault name from ARN: {current_vault_arn}")
+                  return {'statusCode': 400, 'body': 'Invalid Vault ARN'}
+
+              # 4. Get Configuration
+              target_vault_arn = os.environ.get('SECONDARY_VAULT_ARN')
+              retention_days = int(os.environ.get('DESTINATION_RETENTION_DAYS', '30'))
+
+              if not target_vault_arn:
+                  logger.error("SECONDARY_VAULT_ARN is not set.")
+                  return {'statusCode': 500, 'body': 'Missing Target Config'}
+
+              # 5. Trigger the Next Copy Job
+              try:
+                  logger.info(f"Starting chained copy for {source_recovery_point_arn} to {target_vault_arn}")
+                  response = backup_client.start_copy_job(
+                      RecoveryPointArn=source_recovery_point_arn,
+                      SourceBackupVaultName=source_vault_name,
+                      DestinationBackupVaultArn=target_vault_arn,
+                      IamRoleArn=iam_role_arn,
+                      Lifecycle={
+                          'DeleteAfterDays': retention_days
+                      }
+                  )
+                  logger.info(f"Chained Copy Job Started: {response['CopyJobId']}")
+                  return {'statusCode': 200, 'body': f"Copy started: {response['CopyJobId']}"}
+              except Exception as e:
+                  logger.error(f"Failed to start copy job: {str(e)}")
+                  raise e
 
 Outputs:
 
