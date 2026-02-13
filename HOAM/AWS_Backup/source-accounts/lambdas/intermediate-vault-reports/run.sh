@@ -1,0 +1,12 @@
+#!/bin/bash
+BACKUP_VAULT=intermediate-backup-vault-Prod
+ACCOUNT_ID=292535495136
+DESTINATION_VAULT_ID=arn:aws:backup:us-west-2:137708847303:backup-vault:audit-prod-backup-vault-Prod
+DELTA_TIME_HOURS=24
+REGION=us-east-1
+
+docker build -t hoam-test .
+
+docker run -it -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
+    -e AWS_SESSION_TOKEN="$AWS_SESSION_TOKEN" -e BACKUP_VAULT=$BACKUP_VAULT -e ACCOUNT_ID=$ACCOUNT_ID -e DESTINATION_VAULT_ID=$DESTINATION_VAULT_ID \
+    -e DELTA_TIME_HOURS=$DELTA_TIME_HOURS -e REGION=$REGION --rm hoam-test:latest 

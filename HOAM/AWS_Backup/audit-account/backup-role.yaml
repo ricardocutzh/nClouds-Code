@@ -24,11 +24,7 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - rds:DescribeDBInstances
-                  - rds:DescribeDBClusters
-                  - rds:ListTagsForResource
-                  - rds:RestoreDBInstanceFromDBSnapshot
-                  - rds:RestoreDBClusterFromSnapshot
+                  - rds:*
                 Resource: "*"
         - PolicyName: CrossAccountBackupPermissions
           PolicyDocument:
