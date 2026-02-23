@@ -33,3 +33,5 @@ To be able to request planned time off please follow the instructions below:
 * Fill your information through Bamboo HR:
 
 <img src="imgs/Bamboohr_6.png" width="800" height="800">
+
+* In the *Notes* section, add a shared link to your form so we can review the form along with your PTO Request.
