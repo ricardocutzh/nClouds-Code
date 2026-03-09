@@ -1,0 +1,10 @@
+# Tags
+mandatory_tags = [
+  "TeamName",
+  "TeamContact",
+  "CostCenter",
+  "ProductCategory",
+  "ProductSubcategory",
+  "Environment",
+  "BusinessUnit"
+]

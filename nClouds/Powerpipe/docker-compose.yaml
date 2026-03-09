@@ -1,0 +1,10 @@
+services:
+  steampipe_tag:
+    build: .
+    env_file: "primemedicine-infrastructure.env"
+    command: >
+      dashboard.sh
+    ports:
+      - 9033:9033
+    volumes:
+      - ./output/:/home/linuxbrew/dashboards/output/
