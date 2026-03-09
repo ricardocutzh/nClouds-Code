@@ -1,0 +1,4 @@
+services:
+  powerpipe:
+    build: .
+    env_file: "primemedicine-infrastructure.env"
