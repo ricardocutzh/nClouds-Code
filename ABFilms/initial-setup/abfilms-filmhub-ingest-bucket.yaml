@@ -12,7 +12,7 @@ Resources:
   FilmHubIngestBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "abfilms-${AWS::Region}-${S3BucketSuffix}"
+      BucketName: !Sub "abfilms-${AWS::Region}-${AWS::AccountId}-${S3BucketSuffix}"
       Tags:
         - Key: Name
           Value: !Sub "abfilms-${AWS::Region}-${AWS::AccountId}-${S3BucketSuffix}"
