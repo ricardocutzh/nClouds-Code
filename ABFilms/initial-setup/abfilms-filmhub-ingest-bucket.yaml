@@ -1,0 +1,54 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: S3 Template to create S3 Bucket for Access to Filmhub Assets
+
+Parameters:
+
+  S3BucketSuffix:
+    Description: name added to the s3 bucket
+    Type: String 
+
+Resources:
+
+  FilmHubIngestBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "abfilms-${AWS::Region}-${S3BucketSuffix}"
+      Tags:
+        - Key: Name
+          Value: !Sub "abfilms-${AWS::Region}-${S3BucketSuffix}"
+
+  FilmHubBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FilmHubIngestBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: FilmhubS3Delivery
+            Effect: Allow
+            Principal:
+              AWS: "arn:aws:iam::757164319381:root" # filmhubs documentation https://help.filmhub.com/en/articles/2692190-setting-up-file-transfer
+            Action:
+              - "s3:PutObject"
+              - "s3:PutObjectAcl"
+              - "s3:AbortMultipartUpload"
+              - "s3:ListMultipartUploadParts"
+              - "s3:GetObject"
+              - "s3:GetBucketLocation"
+              - "s3:ReplicateObject"
+              - "s3:ReplicateDelete"
+              - "s3:GetBucketVersioning"
+              - "s3:PutBucketVersioning"
+            Resource:
+              - !GetAtt FilmHubIngestBucket.Arn
+              - !Sub "${FilmHubIngestBucket.Arn}/*"
+
+Outputs:
+
+  BucketName:
+    Description: The name of the created S3 bucket.
+    Value: !Ref FilmHubIngestBucket
+
+  BucketArn:
+    Description: The name of the created S3 bucket.
+    Value: !GetAtt FilmHubIngestBucket.Arn
