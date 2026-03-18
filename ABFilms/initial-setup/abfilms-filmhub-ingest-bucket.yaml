@@ -15,7 +15,7 @@ Resources:
       BucketName: !Sub "abfilms-${AWS::Region}-${S3BucketSuffix}"
       Tags:
         - Key: Name
-          Value: !Sub "abfilms-${AWS::Region}-${S3BucketSuffix}"
+          Value: !Sub "abfilms-${AWS::Region}-${AWS::AccountId}-${S3BucketSuffix}"
 
   FilmHubBucketPolicy:
     Type: AWS::S3::BucketPolicy
