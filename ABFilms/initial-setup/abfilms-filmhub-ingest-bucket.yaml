@@ -11,6 +11,7 @@ Resources:
 
   FilmHubIngestBucket:
     Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
     Properties:
       BucketName: !Sub "abfilms-${AWS::Region}-${AWS::AccountId}-${S3BucketSuffix}"
       Tags:
@@ -19,6 +20,7 @@ Resources:
 
   FilmHubBucketPolicy:
     Type: AWS::S3::BucketPolicy
+    DeletionPolicy: Retain
     Properties:
       Bucket: !Ref FilmHubIngestBucket
       PolicyDocument:
