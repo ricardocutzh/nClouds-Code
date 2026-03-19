@@ -1,0 +1,66 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: SAM Project to deploy lambdas required for pipeline
+Parameters:
+  Identifier:
+    Description: name added to resources
+    Type: String
+  Environment:
+    Description: name
+    Type: String
+  IngestS3BucketName:
+    Description: Bucket name where assets are placed
+    Type: String
+Resources:
+  S3IngestUploadTriggerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName:
+        Fn::Sub: abfilms-${Identifier}-${Environment}-s3-trigger/logs
+      RetentionInDays: 90
+  S3IngestUploadTrigger:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: abfilms-${Identifier}-${Environment}-s3-trigger
+      CodeUri: S3IngestUploadTrigger
+      Handler: main.lambda_handler
+      Runtime: python3.13
+      MemorySize: 128
+      Timeout: 60
+      Policies:
+      - CloudWatchPutMetricPolicy: {}
+      - S3ReadPolicy:
+          BucketName:
+            Ref: IngestS3BucketName
+      Environment:
+        Variables:
+          ENVIRONMENT:
+            Ref: Environment
+      LoggingConfig:
+        LogGroup:
+          Ref: S3IngestUploadTriggerLogGroup
+      Events:
+        S3Event:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+              - aws.s3
+              detail-type:
+              - Object Created
+              detail:
+                bucket:
+                  name:
+                  - Ref: IngestS3BucketName
+              object:
+                key:
+                - suffix: .csv
+    Metadata:
+      SamResourceId: S3IngestUploadTrigger
+Outputs:
+  S3IngestUploadTriggerArn:
+    Value:
+      Fn::GetAtt:
+      - S3IngestUploadTrigger
+      - Arn

@@ -1,0 +1,66 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: SAM Project to deploy lambdas required for pipeline
+
+Parameters:
+
+  Identifier:
+    Description: name added to resources
+    Type: String
+
+  Environment:
+    Description: name
+    Type: String
+
+  IngestS3BucketName:
+    Description: Bucket name where assets are placed
+    Type: String
+
+Resources:
+
+  # log group to check logs from lambda, useful for debug
+  S3IngestUploadTriggerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "abfilms-${Identifier}-${Environment}-s3-trigger/logs"
+      RetentionInDays: 90
+  
+  # Lambda processing upload events: when CSV files are uploaded
+  S3IngestUploadTrigger:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "abfilms-${Identifier}-${Environment}-s3-trigger"
+      CodeUri: src/trigger
+      Handler: main.lambda_handler
+      Runtime: python3.13
+      MemorySize: 128
+      Timeout: 60
+      Policies:
+        - CloudWatchPutMetricPolicy: {}
+        - S3ReadPolicy:
+            BucketName: !Ref IngestS3BucketName
+      Environment:
+        Variables:
+          ENVIRONMENT: !Ref Environment
+      LoggingConfig:
+        LogGroup: !Ref S3IngestUploadTriggerLogGroup
+      Events:
+        S3Event:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - aws.s3
+              detail-type:
+                - Object Created
+              detail:
+                bucket:
+                  name:
+                    - !Ref IngestS3BucketName
+              object:
+                  key:
+                    - suffix: ".csv"
+
+Outputs:
+  S3IngestUploadTriggerArn:
+    Value: !GetAtt S3IngestUploadTrigger.Arn

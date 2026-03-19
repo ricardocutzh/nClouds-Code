@@ -1,0 +1,21 @@
+version = 0.1
+
+# --- DEVELOPMENT ENVIRONMENT ---
+[dev.deploy.parameters]
+stack_name = "abfilms-vod-pipeline-dev-lambdas"
+parameter_overrides = "Identifier=\"vod-pipeline\" Environment=\"dev\" IngestS3BucketName=\"abfilms-us-east-1-412393146416-nclouds-ingest\""
+confirm_changeset = true
+fail_on_empty_changeset = false
+capabilities = "CAPABILITY_IAM"
+region = "us-east-1"
+tags = "Project=vod-pipeline Environment=dev ManagedBy=SAM Owner=abfilms SourceCodeProject=Infrastructure/abfilms-lambdas"
+
+# --- PRODUCTION ENVIRONMENT ---
+[prod.deploy.parameters]
+stack_name = "abfilms-vod-pipeline-prod-lambdas"
+parameter_overrides = "Identifier=\"vod-pipeline\" Environment=\"prod\" IngestS3BucketName=\"abfilms-us-east-1-225707668146-filmhub-ingest\""
+confirm_changeset = true
+fail_on_empty_changeset = true
+capabilities = "CAPABILITY_IAM"
+region = "us-east-1"
+tags = "Project=vod-pipeline Environment=prod ManagedBy=SAM Owner=abfilms SourceCodeProject=Infrastructure/abfilms-lambdas"
