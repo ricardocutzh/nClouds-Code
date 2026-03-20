@@ -57,9 +57,9 @@ Resources:
                 bucket:
                   name:
                     - !Ref IngestS3BucketName
-              object:
+                object:
                   key:
-                    - suffix: ".csv"
+                    - wildcard: "*.csv"
 
 Outputs:
   S3IngestUploadTriggerArn:

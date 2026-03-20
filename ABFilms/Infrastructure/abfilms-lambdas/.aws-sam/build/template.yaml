@@ -53,9 +53,9 @@ Resources:
                 bucket:
                   name:
                   - Ref: IngestS3BucketName
-              object:
-                key:
-                - suffix: .csv
+                object:
+                  key:
+                  - wildcard: '*.csv'
     Metadata:
       SamResourceId: S3IngestUploadTrigger
 Outputs:

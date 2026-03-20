@@ -1,10 +1,18 @@
 [
     {
         "Key": "Project",
-        "Value": "Filmhub"
+        "Value": "vod-pipeline"
     },
     {
         "Key": "ManagedBy",
         "Value": "Cloudformation"
+    },
+    {
+        "Key": "Environment",
+        "Value": "dev"
+    },
+    {
+        "Key": "Owner",
+        "Value": "abfilms"
     }
 ]
