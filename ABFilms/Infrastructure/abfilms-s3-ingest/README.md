@@ -27,5 +27,16 @@ aws s3 ls
 
 * You should see an output like this:
 ```
-./deploy.sh prod abfilms
+-------------------------------------------------------
+🚀 Deploying Stack: abfilms-filmhub-ingest-bucket to us-east-1
+Environment: prod
+Identifier: abfilms
+-------------------------------------------------------
+✅ Deployment Successful!
+------------------------------------------------------------
+{
+    "StackId": "arn:aws:cloudformation:us-east-1:225707668146:stack/abfilms-filmhub-ingest-bucket/c8180f10-2303-11f1-9010-0affeb9748af"
+}
+🛡️ Termination protection enabled for PROD
 ```
+---
