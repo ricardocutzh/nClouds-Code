@@ -41,6 +41,13 @@ if [ $? -eq 0 ]; then
         --stack-name "$STACK_NAME" \
         --query 'Stacks[0].Outputs' \
         --output table
+
+    if [ "$ENV" == "prod" ]; then
+        aws cloudformation update-termination-protection \
+            --enable-termination-protection \
+            --stack-name "$STACK_NAME"
+        echo "🛡️ Termination protection enabled for PROD"
+    fi
 else
     echo "-------------------------------------------------------"
     echo "❌ Deployment Failed. Checking events..."
