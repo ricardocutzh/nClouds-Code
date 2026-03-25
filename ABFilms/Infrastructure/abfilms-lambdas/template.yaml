@@ -16,6 +16,9 @@ Parameters:
     Description: Bucket name where assets are placed
     Type: String
 
+Conditions:
+  IsDev: !Equals [!Ref Environment, "dev"]
+
 Resources:
 
   # log group to check logs from lambda, useful for debug
@@ -23,7 +26,7 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub "abfilms-${Identifier}-${Environment}-s3-trigger/logs"
-      RetentionInDays: 90
+      RetentionInDays: !If [IsDev, 7, 90]
   
   # Lambda processing upload events: when CSV files are uploaded
   S3IngestUploadTrigger:
@@ -60,6 +63,28 @@ Resources:
                 object:
                   key:
                     - wildcard: "*.csv"
+
+  ABFilmsPipelineWorkflowLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "abfilms-${Identifier}-${Environment}-statemachine/logs"
+      RetentionInDays: !If [IsDev, 7, 90]
+
+  ABFilmsPipelineWorkflow:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: !Sub abfilms-${Identifier}-${Environment}-statemachine
+      DefinitionUri: pipeline-definition/pipeline.asl.json
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt ABFilmsPipelineWorkflowLogGroup.Arn
+        IncludeExecutionData: !If [IsDev, true, false]
+        Level: !If [IsDev, "ALL", "ERROR"]
+      Policies:
+        - CloudWatchLogsFullAccess 
+      DefinitionSubstitutions:
+        ProjectName: "ABFilms"
 
 Outputs:
   S3IngestUploadTriggerArn:

@@ -1,0 +1,50 @@
+{
+  "StartAt": "ProcessInitialData",
+  "States": {
+    "ProcessInitialData": {
+      "Type": "Pass",
+      "Comment": "Mocking the initial data ingestion from S3",
+      "Result": {
+        "status": "DATA_READY",
+        "processing_timestamp": "2026-03-24T18:00:00Z"
+      },
+      "ResultPath": "$.initial_meta",
+      "Next": "DetermineMediaType"
+    },
+    "DetermineMediaType": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.MediaType",
+          "StringEquals": "Movie",
+          "Next": "ProcessMoviePath"
+        },
+        {
+          "Variable": "$.MediaType",
+          "StringEquals": "Show",
+          "Next": "ProcessShowPath"
+        }
+      ],
+      "Default": "UnknownTypeFallback"
+    },
+    "ProcessMoviePath": {
+      "Type": "Pass",
+      "Result": { "route": "film_processing_queue" },
+      "Next": "FinalSuccess"
+    },
+    "ProcessShowPath": {
+      "Type": "Pass",
+      "Result": { "route": "episodic_processing_queue" },
+      "Next": "FinalSuccess"
+    },
+    "UnknownTypeFallback": {
+      "Type": "Fail",
+      "Cause": "Invalid Media Type",
+      "Error": "The MediaType must be 'Movie' or 'Show'"
+    },
+    "FinalSuccess": {
+      "Type": "Pass",
+      "End": true
+    }
+  }
+}
