@@ -38,7 +38,7 @@ Resources:
     Type: AWS::Serverless::StateMachine
     Properties:
       Name: !Sub abfilms-movies-${Identifier}-${Environment}-statemachine
-      DefinitionUri: pipeline-definition/pipeline.asl.json
+      DefinitionUri: pipeline-definition/movie-pipeline.asl.json
       Logging:
         Destinations:
           - CloudWatchLogsLogGroup:
@@ -54,7 +54,7 @@ Resources:
     Type: AWS::Serverless::StateMachine
     Properties:
       Name: !Sub abfilms-shows-${Identifier}-${Environment}-statemachine
-      DefinitionUri: pipeline-definition/pipeline.asl.json
+      DefinitionUri: pipeline-definition/show-pipeline.asl.json
       Logging:
         Destinations:
           - CloudWatchLogsLogGroup:

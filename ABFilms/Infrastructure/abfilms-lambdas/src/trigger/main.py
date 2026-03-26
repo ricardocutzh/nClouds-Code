@@ -123,6 +123,12 @@ def lambda_handler(event, context):
                     for lcode, stype, sfilename in zip(movie_subtitles_captions_languages, movie_subtitles_captions_types, movie_subtitles_captions_filenames)
                 ]
                 data["subtitles_data"] = subtitle_data
+                response = sfn.start_execution(
+                    stateMachineArn=movie_state_machine_arn,
+                    name=safe_name,
+                    input=json.dumps(data)
+                )
+                logger.info(f">> Triggering State Machine with name: {safe_name} on {movie_state_machine_arn}")
             if d["Program Type"] == "Show":
                 show_subtitles_captions_languages = d["Episode Subtitles/Captions Languages"].replace(" ", "").split(",")
                 show_subtitles_captions_types = d["Episode Subtitles/Captions Type"].replace(" ", "").split(",")
@@ -135,6 +141,12 @@ def lambda_handler(event, context):
                 data["episode_name"] = d["Episode Name"]
                 data["season_number"] = d["Season Number"]
                 data["episode_number"] = d["Episode Number"]
+                sfn.start_execution(
+                    stateMachineArn=show_state_machine_arn,
+                    name=safe_name,
+                    input=json.dumps(data)
+                )
+                logger.info(f">> Triggering State Machine with name: {safe_name} on {show_state_machine_arn}")
 
             logger.info(json.dumps(data))
             

@@ -1,0 +1,9 @@
+{
+  "StartAt": "InitializeMovieJob",
+  "States": {
+    "InitializeMovieJob": {
+      "Type": "Pass",
+      "End": true
+    }
+  }
+}
