@@ -3,24 +3,23 @@
   "States": {
     "ProcessInitialData": {
       "Type": "Pass",
-      "Comment": "Mocking the initial data ingestion from S3",
+      "Comment": "Initial step to acknowledge receipt of S3 data",
       "Result": {
-        "status": "DATA_READY",
-        "processing_timestamp": "2026-03-24T18:00:00Z"
+        "validation": "SUCCESS"
       },
-      "ResultPath": "$.initial_meta",
+      "ResultPath": "$.workflow_status",
       "Next": "DetermineMediaType"
     },
     "DetermineMediaType": {
       "Type": "Choice",
       "Choices": [
         {
-          "Variable": "$.MediaType",
+          "Variable": "$.data['Program Type']",
           "StringEquals": "Movie",
           "Next": "ProcessMoviePath"
         },
         {
-          "Variable": "$.MediaType",
+          "Variable": "$.data['Program Type']",
           "StringEquals": "Show",
           "Next": "ProcessShowPath"
         }
@@ -29,18 +28,26 @@
     },
     "ProcessMoviePath": {
       "Type": "Pass",
-      "Result": { "route": "film_processing_queue" },
+      "Result": { 
+        "engine": "vfx-pipeline",
+        "label": "Feature Film" 
+      },
+      "ResultPath": "$.routing_info",
       "Next": "FinalSuccess"
     },
     "ProcessShowPath": {
       "Type": "Pass",
-      "Result": { "route": "episodic_processing_queue" },
+      "Result": { 
+        "engine": "episodic-pipeline",
+        "label": "TV Series" 
+      },
+      "ResultPath": "$.routing_info",
       "Next": "FinalSuccess"
     },
     "UnknownTypeFallback": {
       "Type": "Fail",
-      "Cause": "Invalid Media Type",
-      "Error": "The MediaType must be 'Movie' or 'Show'"
+      "Cause": "The 'Program Type' provided was neither 'Movie' nor 'Show'.",
+      "Error": "INVALID_PROGRAM_TYPE"
     },
     "FinalSuccess": {
       "Type": "Pass",

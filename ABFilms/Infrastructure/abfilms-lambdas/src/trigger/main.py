@@ -2,12 +2,18 @@ import json
 import logging
 import boto3
 import csv
+import os
 from pathlib import Path
 from botocore.exceptions import ClientError
+from datetime import datetime
+import hashlib
 
 # Best practice: Set up a logger
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+sfn = boto3.client('stepfunctions')
+state_machine_arn = os.environ.get('STATE_MACHINE_ARN')
+environment = os.environ.get("ENVIRONMENT")
 
 def csv_to_json_object(file_path: str):
     """
@@ -85,13 +91,36 @@ def lambda_handler(event, context):
 
         metadata_json = csv_to_json_object(saved_path)
 
-        data = {
-            's3_bucket': str(bucket_name),
-            'origin_metadata_csv': str(object_key),
-            'matadata': metadata_json
-        }
+        for d in metadata_json:
 
-        logger.info(json.dumps(data))
+            data = {
+                's3_bucket': str(bucket_name),
+                'parent_folder': str(object_key).split("/")[0],
+                'origin_metadata_csv': str(object_key),
+                'type': d["Program Type"].lower(),
+                'env': str(environment),
+                'data': d
+            }
+            logger.info(json.dumps(data))
+
+            now = datetime.now()
+            timestamp_str = now.strftime("%Y%m%d%H%M%S%f")
+            hash_input = f"{timestamp_str}".encode('utf-8')
+            full_hash = hashlib.md5(hash_input).hexdigest()
+            short_hash = full_hash[:10] # Take first 8 characters for readability
+            sku = str(d["Movie/Show Filmhub SKU"]) if d["Program Type"] == "Movie" else str(d["Episode SKU"])
+
+            safe_name = f"pln-{d["Program Type"].lower()}-{str(environment)}-{d["Movie/Show Title"].replace(" ", "")}-sku_{sku}-{short_hash}"
+
+            response = sfn.start_execution(
+                stateMachineArn=state_machine_arn,
+                name=safe_name[:80], # Name limit is 80 characters
+                input=json.dumps(data)
+            )
+
+            logger.info(f">> Started State Machine: {response['executionArn']}")
+            
+        return True
         
     except KeyError as e:
         logger.error(f">> Error parsing event: Missing key {str(e)}")

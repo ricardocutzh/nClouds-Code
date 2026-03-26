@@ -1,0 +1,31 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: SAM Project to deploy mediaconvert resources
+
+Parameters:
+
+  Identifier:
+    Description: name added to resources
+    Type: String
+
+  Environment:
+    Description: name
+    Type: String
+
+  QueuesStatus:
+    Description: queues status setup
+    Type: String
+
+Conditions:
+  IsDev: !Equals [!Ref Environment, "dev"]
+
+Resources:
+
+  MediaConvertQueues:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ./mediaconvert/queues.yaml
+      Parameters:
+        Identifier: !Ref Identifier
+        Environment: !Ref Environment
+        QueuesStatus: !Ref QueuesStatus
