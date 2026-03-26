@@ -12,7 +12,8 @@ import hashlib
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 sfn = boto3.client('stepfunctions')
-state_machine_arn = os.environ.get('STATE_MACHINE_ARN')
+movie_state_machine_arn = os.environ.get('MOVIE_STATE_MACHINE')
+show_state_machine_arn = os.environ.get('SHOW_STATE_MACHINE')
 environment = os.environ.get("ENVIRONMENT")
 
 def csv_to_json_object(file_path: str):
@@ -87,7 +88,7 @@ def lambda_handler(event, context):
         logger.info(f">> File uploaded: s3://{bucket_name}/{object_key}")
 
         saved_path = download_s3_to_local(bucket_name, object_key)
-        logger.info(f">> File downloaded here: ${saved_path}")
+        logger.info(f">> File downloaded here: {saved_path}")
 
         metadata_json = csv_to_json_object(saved_path)
 
@@ -99,9 +100,10 @@ def lambda_handler(event, context):
                 'origin_metadata_csv': str(object_key),
                 'type': d["Program Type"].lower(),
                 'env': str(environment),
-                'data': d
+                'original_data': d,
+                'available_types': d["Avail Type(s)"].replace(" ", "").split(",")
             }
-            logger.info(json.dumps(data))
+            
 
             now = datetime.now()
             timestamp_str = now.strftime("%Y%m%d%H%M%S%f")
@@ -112,13 +114,29 @@ def lambda_handler(event, context):
 
             safe_name = f"pln-{d["Program Type"].lower()}-{str(environment)}-{d["Movie/Show Title"].replace(" ", "")}-sku_{sku}-{short_hash}"
 
-            response = sfn.start_execution(
-                stateMachineArn=state_machine_arn,
-                name=safe_name[:80], # Name limit is 80 characters
-                input=json.dumps(data)
-            )
+            if d["Program Type"] == "Movie":
+                movie_subtitles_captions_languages = d["Movie Subtitles/Captions Languages"].replace(" ", "").split(",")
+                movie_subtitles_captions_types = d["Movie Subtitles/Captions Types"].replace(" ", "").split(",")
+                movie_subtitles_captions_filenames = d["Movie Subtitles/Captions Filenames"].replace(" ", "").split(",")
+                subtitle_data = [
+                    {"sub_language_code": lcode, "sub_type": stype, "sub_file_name": sfilename}
+                    for lcode, stype, sfilename in zip(movie_subtitles_captions_languages, movie_subtitles_captions_types, movie_subtitles_captions_filenames)
+                ]
+                data["subtitles_data"] = subtitle_data
+            if d["Program Type"] == "Show":
+                show_subtitles_captions_languages = d["Episode Subtitles/Captions Languages"].replace(" ", "").split(",")
+                show_subtitles_captions_types = d["Episode Subtitles/Captions Type"].replace(" ", "").split(",")
+                show_subtitles_captions_filenames = d["Episode Subtitles/Captions Filenames"].replace(" ", "").split(",")
+                subtitle_data = [
+                    {"sub_language_code": lcode, "sub_type": stype, "sub_file_name": sfilename}
+                    for lcode, stype, sfilename in zip(show_subtitles_captions_languages, show_subtitles_captions_types, show_subtitles_captions_filenames)
+                ]
+                data["subtitles_data"] = subtitle_data
+                data["episode_name"] = d["Episode Name"]
+                data["season_number"] = d["Season Number"]
+                data["episode_number"] = d["Episode Number"]
 
-            logger.info(f">> Started State Machine: {response['executionArn']}")
+            logger.info(json.dumps(data))
             
         return True
         

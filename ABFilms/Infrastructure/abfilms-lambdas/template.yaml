@@ -21,21 +21,44 @@ Conditions:
 
 Resources:
 
-  ABFilmsPipelineWorkflowLogGroup:
+  ABFilmsMoviePipelineWorkflowLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub "abfilms-${Identifier}-${Environment}-statemachine/logs"
+      LogGroupName: !Sub "abfilms-movies-${Identifier}-${Environment}-statemachine/logs"
       RetentionInDays: !If [IsDev, 7, 90]
 
-  ABFilmsPipelineWorkflow:
+  ABFilmsShowPipelineWorkflowLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "abfilms-shows-${Identifier}-${Environment}-statemachine/logs"
+      RetentionInDays: !If [IsDev, 7, 90]
+
+
+  ABFilmsMoviePipelineWorkflow:
     Type: AWS::Serverless::StateMachine
     Properties:
-      Name: !Sub abfilms-${Identifier}-${Environment}-statemachine
+      Name: !Sub abfilms-movies-${Identifier}-${Environment}-statemachine
       DefinitionUri: pipeline-definition/pipeline.asl.json
       Logging:
         Destinations:
           - CloudWatchLogsLogGroup:
-              LogGroupArn: !GetAtt ABFilmsPipelineWorkflowLogGroup.Arn
+              LogGroupArn: !GetAtt ABFilmsMoviePipelineWorkflowLogGroup.Arn
+        IncludeExecutionData: !If [IsDev, true, false]
+        Level: !If [IsDev, "ALL", "ERROR"]
+      Policies:
+        - CloudWatchLogsFullAccess 
+      DefinitionSubstitutions:
+        ProjectName: "ABFilms"
+
+  ABFilmsShowPipelineWorkflow:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: !Sub abfilms-shows-${Identifier}-${Environment}-statemachine
+      DefinitionUri: pipeline-definition/pipeline.asl.json
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt ABFilmsShowPipelineWorkflowLogGroup.Arn
         IncludeExecutionData: !If [IsDev, true, false]
         Level: !If [IsDev, "ALL", "ERROR"]
       Policies:
@@ -65,11 +88,14 @@ Resources:
         - S3ReadPolicy:
             BucketName: !Ref IngestS3BucketName
         - StepFunctionsExecutionPolicy:
-            StateMachineName: !GetAtt ABFilmsPipelineWorkflow.Name
+            StateMachineName: !GetAtt ABFilmsMoviePipelineWorkflow.Name
+        - StepFunctionsExecutionPolicy:
+            StateMachineName: !GetAtt ABFilmsShowPipelineWorkflow.Name
       Environment:
         Variables:
           ENVIRONMENT: !Ref Environment
-          STATE_MACHINE_ARN: !Ref ABFilmsPipelineWorkflow
+          MOVIE_STATE_MACHINE: !Ref ABFilmsMoviePipelineWorkflow
+          SHOW_STATE_MACHINE: !Ref ABFilmsShowPipelineWorkflow
       LoggingConfig:
         LogGroup: !Ref S3IngestUploadTriggerLogGroup
       Events:
