@@ -15,6 +15,7 @@ sfn = boto3.client('stepfunctions')
 movie_state_machine_arn = os.environ.get('MOVIE_STATE_MACHINE')
 show_state_machine_arn = os.environ.get('SHOW_STATE_MACHINE')
 environment = os.environ.get("ENVIRONMENT")
+out_s3 = os.environ.get("S3_OUTPUT_BUCKET")
 
 def csv_to_json_object(file_path: str):
     """
@@ -96,6 +97,10 @@ def lambda_handler(event, context):
 
             data = {
                 's3_bucket': str(bucket_name),
+                'out_s3_bucket': str(out_s3),
+                'mediaconvert_template': os.environ.get('MOVIE_MEDIACONVERT_TEMPLATE'),
+                'mediaconvert_queue': os.environ.get('MOVIE_MEDIACONVERT_QUEUE'),
+                'mediaconvert_role': os.environ.get('MEDIACONVERT_ROLE'),
                 'parent_folder': str(object_key).split("/")[0],
                 'origin_metadata_csv': str(object_key),
                 'type': d["Program Type"].lower(),

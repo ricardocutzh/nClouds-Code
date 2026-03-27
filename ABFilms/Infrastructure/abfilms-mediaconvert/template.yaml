@@ -73,15 +73,25 @@ Outputs:
 
   MoviesJobTemplate:
     Value: !GetAtt MediaConvertTemplates.Outputs.MoviesJobTemplate
+    Export:
+      Name: MoviesJobTemplate
 
   ShowsJobTemplate:
     Value: !GetAtt MediaConvertTemplates.Outputs.ShowsJobTemplate
+    Export:
+      Name: ShowsJobTemplate
 
   MovieQueueArn:
     Value: !GetAtt MediaConvertQueues.Outputs.MovieQueueArn
+    Export:
+      Name: MovieQueueArn
 
   ShowQueueArn:
     Value: !GetAtt MediaConvertQueues.Outputs.ShowQueueArn
+    Export:
+      Name: ShowQueueArn
 
   MediaConvertRoleArn:
     Value: !GetAtt MediaConvertRole.Arn
+    Export:
+      Name: MediaConvertRoleArn

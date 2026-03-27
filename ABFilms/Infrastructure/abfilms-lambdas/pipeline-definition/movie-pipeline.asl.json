@@ -3,6 +3,47 @@
   "States": {
     "InitializeMovieJob": {
       "Type": "Pass",
+      "Next": "CreateMediaConvertJob"
+    },
+    "CreateMediaConvertJob": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::mediaconvert:createJob.sync",
+      "Parameters": {
+        "JobTemplate.$": "$.mediaconvert_template",
+        "Queue.$": "$.mediaconvert_queue",
+        "Role.$": "$.mediaconvert_role",
+        "Settings": {
+          "Inputs": [
+            {
+              "AudioSelectors": {
+                "Audio Selector 1": { "DefaultSelection": "DEFAULT" }
+              },
+              "FileInput.$": "States.Format('s3://{}/{}/{}', $.s3_bucket, $.parent_folder, $.original_data['Movie Filename'])",
+              "CaptionSelectors": {
+                "Captions": {
+                  "SourceSettings": {
+                    "SourceType": "SRT",
+                    "FileSourceSettings": {
+                      "SourceFile.$": "States.Format('s3://{}/{}/{}', $.s3_bucket, $.parent_folder, $.subtitles_data[0].sub_file_name)"
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "OutputGroups": [
+            {
+              "Name": "HLS Group",
+              "OutputGroupSettings": {
+                "Type": "HLS_GROUP_SETTINGS",
+                "HlsGroupSettings": {
+                  "Destination.$": "States.Format('s3://{}/{}/output/hls/index', $.out_s3_bucket, $.parent_folder)"
+                }
+              }
+            }
+          ]
+        }
+      },
       "End": true
     }
   }

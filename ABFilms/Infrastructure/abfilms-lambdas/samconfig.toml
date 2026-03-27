@@ -13,7 +13,6 @@ tags = "Project=vod-pipeline Environment=dev ManagedBy=SAM Owner=abfilms SourceC
 # --- PRODUCTION ENVIRONMENT ---
 [prod.deploy.parameters]
 stack_name = "abfilms-vod-pipeline-prod-lambdas"
-parameter_overrides = "Identifier=\"vod-pipeline\" Environment=\"prod\" IngestS3BucketName=\"abfilms-us-east-1-225707668146-filmhub-ingest\""
 confirm_changeset = true
 fail_on_empty_changeset = true
 capabilities = "CAPABILITY_IAM"

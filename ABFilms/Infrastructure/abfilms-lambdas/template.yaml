@@ -16,6 +16,30 @@ Parameters:
     Description: Bucket name where assets are placed
     Type: String
 
+  OutputS3BucketName:
+    Description: Bucket name where assets are placed
+    Type: String
+
+  MediaconvertRole:
+    Type: String
+    Description: mediaconvert job
+
+  MovieMediaConvertTemplate:
+    Type: String
+    Description: mediaconvert template for jobs
+
+  MovieMediaConvertQueue:
+    Type: String
+    Description: mediaconvert queue 
+
+  ShowMediaConvertTemplate:
+    Type: String
+    Description: mediaconvert template for jobs
+
+  ShowMediaConvertQueue:
+    Type: String
+    Description: mediaconvert queue 
+
 Conditions:
   IsDev: !Equals [!Ref Environment, "dev"]
 
@@ -39,6 +63,12 @@ Resources:
     Properties:
       Name: !Sub abfilms-movies-${Identifier}-${Environment}-statemachine
       DefinitionUri: pipeline-definition/movie-pipeline.asl.json
+      # DefinitionSubstitutions:
+      #   Testing: value
+      #   Other: test
+      #   MovieHlsTemplate: !Ref MovieMediaConvertTemplate # The logical ID of your template
+      #   MovieQueueArn: !Ref MovieMediaConvertQueue
+      #   MediaConvertRoleArn: !Ref MediaconvertRole
       Logging:
         Destinations:
           - CloudWatchLogsLogGroup:
@@ -46,7 +76,16 @@ Resources:
         IncludeExecutionData: !If [IsDev, true, false]
         Level: !If [IsDev, "ALL", "ERROR"]
       Policies:
-        - CloudWatchLogsFullAccess 
+        - CloudWatchLogsFullAccess
+        - AWSElementalMediaConvertFullAccess
+        - Statement:
+          - Effect: Allow
+            Action:
+            - events:PutTargets
+            - events:PutRule
+            - events:DescribeRule
+            Resource: 
+            - "*"
       DefinitionSubstitutions:
         ProjectName: "ABFilms"
 
@@ -94,7 +133,13 @@ Resources:
       Environment:
         Variables:
           ENVIRONMENT: !Ref Environment
-          MOVIE_STATE_MACHINE: !Ref ABFilmsMoviePipelineWorkflow
+          S3_OUTPUT_BUCKET: !Ref OutputS3BucketName
+          MEDIACONVERT_ROLE: !Ref MediaconvertRole
+
+          MOVIE_STATE_MACHINE: !Ref ABFilmsMoviePipelineWorkflow    
+          MOVIE_MEDIACONVERT_QUEUE: !Ref MovieMediaConvertQueue
+          MOVIE_MEDIACONVERT_TEMPLATE: !Ref MovieMediaConvertTemplate
+
           SHOW_STATE_MACHINE: !Ref ABFilmsShowPipelineWorkflow
       LoggingConfig:
         LogGroup: !Ref S3IngestUploadTriggerLogGroup

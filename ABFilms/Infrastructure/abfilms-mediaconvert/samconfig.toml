@@ -3,7 +3,6 @@ version = 0.1
 # --- DEVELOPMENT ENVIRONMENT ---
 [dev.deploy.parameters]
 stack_name = "abfilms-vod-pipeline-dev-mediaconvert"
-parameter_overrides = "Identifier=\"vod-pipeline\" Environment=\"dev\" QueuesStatus=\"ACTIVE\""
 confirm_changeset = false
 fail_on_empty_changeset = false
 capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND CAPABILITY_NAMED_IAM"
