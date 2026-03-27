@@ -21,6 +21,37 @@ Conditions:
 
 Resources:
 
+  MediaConvertRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "abfilms-${AWS::Region}-${Identifier}-${Environment}-mediaconvert-role"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: mediaconvert.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: MediaConvertS3Access
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              # 1. Permission to read source files (MP4, SRT)
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetBucketLocation
+                Resource: 
+                  - '*'
+              
+              # 2. Permission to write HLS outputs
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                Resource: 
+                  - '*'
+
   MediaConvertQueues:
     Type: AWS::Serverless::Application
     Properties:
@@ -29,3 +60,28 @@ Resources:
         Identifier: !Ref Identifier
         Environment: !Ref Environment
         QueuesStatus: !Ref QueuesStatus
+
+  MediaConvertTemplates:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ./mediaconvert/templates.yaml
+      Parameters:
+        Identifier: !Ref Identifier
+        Environment: !Ref Environment
+
+Outputs:
+
+  MoviesJobTemplate:
+    Value: !GetAtt MediaConvertTemplates.Outputs.MoviesJobTemplate
+
+  ShowsJobTemplate:
+    Value: !GetAtt MediaConvertTemplates.Outputs.ShowsJobTemplate
+
+  MovieQueueArn:
+    Value: !GetAtt MediaConvertQueues.Outputs.MovieQueueArn
+
+  ShowQueueArn:
+    Value: !GetAtt MediaConvertQueues.Outputs.ShowQueueArn
+
+  MediaConvertRoleArn:
+    Value: !GetAtt MediaConvertRole.Arn
