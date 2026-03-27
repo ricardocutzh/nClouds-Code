@@ -35,6 +35,14 @@ Resources:
               - ContainerSettings:
                   Container: M3U8 # Changed from M2TS to M3U8 for HLS Group
                 NameModifier: "_1080p" # Required to distinguish files
+                AudioDescriptions:
+                  - AudioSourceName: "Audio Selector 1"
+                    CodecSettings:
+                      Codec: AAC
+                      AacSettings:
+                        Bitrate: 160000
+                        CodingMode: CODING_MODE_2_0 
+                        SampleRate: 48000
                 VideoDescription:
                   Width: 1920
                   Height: 1080
@@ -55,6 +63,15 @@ Resources:
               - ContainerSettings:
                   Container: M3U8
                 NameModifier: "_720p"
+                AudioDescriptions:
+                  - AudioSourceName: "Audio Selector 1"
+                    CodecSettings:
+                      Codec: AAC
+                      AacSettings:
+                        Bitrate: 128000
+                        # FIXED: Standard stereo mode for better compatibility
+                        CodingMode: CODING_MODE_2_0
+                        SampleRate: 48000
                 VideoDescription:
                   Width: 1280
                   Height: 720
@@ -74,6 +91,15 @@ Resources:
               - ContainerSettings:
                   Container: M3U8
                 NameModifier: "_480p"
+                AudioDescriptions:
+                  - AudioSourceName: "Audio Selector 1"
+                    CodecSettings:
+                      Codec: AAC
+                      AacSettings:
+                        Bitrate: 96000
+                        # FIXED: Standard stereo mode
+                        CodingMode: CODING_MODE_2_0
+                        SampleRate: 48000
                 VideoDescription:
                   Width: 854
                   Height: 480
@@ -107,6 +133,16 @@ Resources:
               - ContainerSettings:
                   Container: M3U8 # Changed from M2TS to M3U8 for HLS Group
                 NameModifier: "_1080p" # Required to distinguish files
+                AudioDescriptions:
+                  - AudioSourceName: "Audio Selector 1"
+                    CodecSettings:
+                      Codec: AAC
+                      AacSettings:
+                        Bitrate: 160000
+                        CodingMode: CODING_MODE_2_0
+                        SampleRate: 48000
+                        CodecProfile: LC
+                        RateControlMode: CBR
                 VideoDescription:
                   Width: 1920
                   Height: 1080
@@ -127,6 +163,15 @@ Resources:
               - ContainerSettings:
                   Container: M3U8
                 NameModifier: "_720p"
+                AudioDescriptions:
+                  - AudioSourceName: "Audio Selector 1"
+                    CodecSettings:
+                      Codec: AAC
+                      AacSettings:
+                        Bitrate: 128000
+                        # FIXED: Standard stereo mode for better compatibility
+                        CodingMode: CODING_MODE_2_0
+                        SampleRate: 48000
                 VideoDescription:
                   Width: 1280
                   Height: 720
@@ -146,6 +191,15 @@ Resources:
               - ContainerSettings:
                   Container: M3U8
                 NameModifier: "_480p"
+                AudioDescriptions:
+                  - AudioSourceName: "Audio Selector 1"
+                    CodecSettings:
+                      Codec: AAC
+                      AacSettings:
+                        Bitrate: 96000
+                        # FIXED: Standard stereo mode
+                        CodingMode: CODING_MODE_2_0
+                        SampleRate: 48000
                 VideoDescription:
                   Width: 854
                   Height: 480

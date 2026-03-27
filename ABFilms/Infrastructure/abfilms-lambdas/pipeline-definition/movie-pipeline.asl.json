@@ -16,7 +16,13 @@
           "Inputs": [
             {
               "AudioSelectors": {
-                "Audio Selector 1": { "DefaultSelection": "DEFAULT" }
+                "Audio Selector 1": {
+                  "DefaultSelection": "NOT_DEFAULT",
+                  "SelectorType": "TRACK",
+                  "Tracks": [
+                    1
+                  ]
+                }
               },
               "FileInput.$": "States.Format('s3://{}/{}/{}', $.s3_bucket, $.parent_folder, $.original_data['Movie Filename'])",
               "CaptionSelectors": {
