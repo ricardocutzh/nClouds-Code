@@ -41,8 +41,10 @@ Resources:
                       Codec: AAC
                       AacSettings:
                         Bitrate: 160000
-                        CodingMode: CODING_MODE_2_0 
+                        CodingMode: CODING_MODE_2_0
                         SampleRate: 48000
+                        CodecProfile: LC
+                        RateControlMode: CBR
                 VideoDescription:
                   Width: 1920
                   Height: 1080
