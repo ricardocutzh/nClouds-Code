@@ -1,0 +1,11 @@
+{
+    "Identifier": "vod-pipeline",
+    "Environment": "dev",
+    "IngestS3BucketName": "abfilms-us-east-1-412393146416-nclouds-ingest",
+    "OutputS3BucketName": "abfilms-us-east-1-412393146416-output",
+    "MediaconvertRole": "arn:aws:iam::412393146416:role/abfilms-us-east-1-vod-pipeline-dev-mediaconvert-role",
+    "MovieMediaConvertTemplate": "arn:aws:mediaconvert:us-east-1:412393146416:jobTemplates/abfilms-vod-pipeline-dev-movies-hls-ladder",
+    "MovieMediaConvertQueue": "arn:aws:mediaconvert:us-east-1:412393146416:queues/abfilms-vod-pipeline-dev-movie-queue",
+    "ShowMediaConvertTemplate": "arn:aws:mediaconvert:us-east-1:412393146416:jobTemplates/abfilms-vod-pipeline-dev-shows-hls-ladder",
+    "ShowMediaConvertQueue": "arn:aws:mediaconvert:us-east-1:412393146416:queues/abfilms-vod-pipeline-dev-show-queue"
+}

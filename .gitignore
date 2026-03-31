@@ -1,3 +1,5 @@
 *.env
 output/
 .env
+.aws-sam
+.DS_Store

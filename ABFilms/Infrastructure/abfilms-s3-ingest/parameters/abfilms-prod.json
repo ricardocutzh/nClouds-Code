@@ -1,0 +1,6 @@
+[
+  {
+    "ParameterKey": "S3BucketSuffix",
+    "ParameterValue": "filmhub-ingest"
+  }
+]

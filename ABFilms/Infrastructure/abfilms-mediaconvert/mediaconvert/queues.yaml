@@ -1,0 +1,46 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: SAM Project to deploy mediaconvert resources
+
+Parameters:
+
+  Identifier:
+    Description: name added to resources
+    Type: String
+
+  Environment:
+    Description: name
+    Type: String
+
+  QueuesStatus:
+    Description: queues status setup
+    Type: String
+
+Conditions:
+  IsDev: !Equals [!Ref Environment, "dev"]
+
+Resources:
+
+  MediaConvertMovieQueue:
+    Type: AWS::MediaConvert::Queue
+    Properties:
+      Name: !Sub "abfilms-${Identifier}-${Environment}-movie-queue"
+      Description: "Dedicated queue for Feature Film transcoding"
+      Status: !Ref QueuesStatus
+      # Priority is 0-1000. Higher numbers are processed first.
+      PricingPlan: ON_DEMAND
+
+  MediaConvertShowQueue:
+    Type: AWS::MediaConvert::Queue
+    Properties:
+      Name: !Sub "abfilms-${Identifier}-${Environment}-show-queue"
+      Description: "Dedicated queue for Episodic/TV Show transcoding"
+      Status: !Ref QueuesStatus
+      PricingPlan: ON_DEMAND
+
+Outputs:
+  MovieQueueArn:
+    Value: !GetAtt MediaConvertMovieQueue.Arn
+
+  ShowQueueArn:
+    Value: !GetAtt MediaConvertShowQueue.Arn

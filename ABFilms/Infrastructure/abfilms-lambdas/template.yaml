@@ -1,0 +1,235 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: SAM Project to deploy lambdas required for pipeline
+
+Parameters:
+
+  Identifier:
+    Description: name added to resources
+    Type: String
+
+  Environment:
+    Description: name
+    Type: String
+
+  IngestS3BucketName:
+    Description: Bucket name where assets are placed
+    Type: String
+
+  OutputS3BucketName:
+    Description: Bucket name where assets are placed
+    Type: String
+
+  MediaconvertRole:
+    Type: String
+    Description: mediaconvert job
+
+  MovieMediaConvertTemplate:
+    Type: String
+    Description: mediaconvert template for jobs
+
+  MovieMediaConvertQueue:
+    Type: String
+    Description: mediaconvert queue 
+
+  ShowMediaConvertTemplate:
+    Type: String
+    Description: mediaconvert template for jobs
+
+  ShowMediaConvertQueue:
+    Type: String
+    Description: mediaconvert queue 
+
+Conditions:
+  IsDev: !Equals [!Ref Environment, "dev"]
+
+Resources:
+
+  JobBuilderLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "abfilms-${Identifier}-${Environment}-job-builder/logs"
+      RetentionInDays: !If [IsDev, 7, 90]
+
+  JobBuilder:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "abfilms-${Identifier}-${Environment}-job-builder"
+      CodeUri: src/job-builder
+      Handler: main.lambda_handler
+      Runtime: python3.13
+      MemorySize: 128
+      Timeout: 60
+      Policies:
+        - CloudWatchPutMetricPolicy: {}
+      Environment:
+        Variables:
+          ENVIRONMENT: !Ref Environment
+      LoggingConfig:
+        LogGroup: !Ref JobBuilderLogs
+
+  ABFilmsMoviePipelineWorkflowLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "abfilms-movies-${Identifier}-${Environment}-statemachine/logs"
+      RetentionInDays: !If [IsDev, 7, 90]
+
+  ABFilmsShowPipelineWorkflowLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "abfilms-shows-${Identifier}-${Environment}-statemachine/logs"
+      RetentionInDays: !If [IsDev, 7, 90]
+
+  ABFilmsMoviePipelineWorkflow:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: !Sub abfilms-movies-${Identifier}-${Environment}-statemachine
+      Definition:
+        StartAt: MediaConvertJobBuilder
+        States:
+
+          MediaConvertJobBuilder:
+            Type: Task
+            Resource: !GetAtt JobBuilder.Arn
+            Next: CreateMediaConvertJobMovies
+            #End: true
+          
+          CreateMediaConvertJobMovies:
+            Type: Task
+            Resource: "arn:aws:states:::mediaconvert:createJob.sync"
+            Parameters:
+              "Queue.$": "$.Queue"
+              "Role.$": "$.Role"
+              "Settings.$": "$.Settings"
+            End: true
+
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt ABFilmsMoviePipelineWorkflowLogGroup.Arn
+        IncludeExecutionData: !If [IsDev, true, false]
+        Level: !If [IsDev, "ALL", "ERROR"]
+      Policies:
+        - CloudWatchLogsFullAccess
+        - LambdaInvokePolicy:
+            FunctionName: !Ref JobBuilder
+        - AWSElementalMediaConvertFullAccess
+        - Statement:
+          - Effect: Allow
+            Action:
+            - events:PutTargets
+            - events:PutRule
+            - events:DescribeRule
+            Resource: 
+            - "*"
+      DefinitionSubstitutions:
+        ProjectName: "ABFilms"
+
+  ABFilmsShowPipelineWorkflow:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Name: !Sub abfilms-shows-${Identifier}-${Environment}-statemachine
+      Definition:
+
+        StartAt: MediaConvertJobBuilder
+        States:
+          MediaConvertJobBuilder:
+            Type: Task
+            Resource: !GetAtt JobBuilder.Arn
+            Next: CreateMediaConvertJobShows
+            #End: true
+          
+          CreateMediaConvertJobShows:
+            Type: Task
+            Resource: "arn:aws:states:::mediaconvert:createJob.sync"
+            Parameters:
+              "Queue.$": "$.Queue"
+              "Role.$": "$.Role"
+              "Settings.$": "$.Settings"
+            End: true
+
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt ABFilmsShowPipelineWorkflowLogGroup.Arn
+        IncludeExecutionData: !If [IsDev, true, false]
+        Level: !If [IsDev, "ALL", "ERROR"]
+      Policies:
+        - CloudWatchLogsFullAccess
+        - LambdaInvokePolicy:
+            FunctionName: !Ref JobBuilder
+        - AWSElementalMediaConvertFullAccess
+        - Statement:
+          - Effect: Allow
+            Action:
+            - events:PutTargets
+            - events:PutRule
+            - events:DescribeRule
+            Resource: 
+            - "*"
+      DefinitionSubstitutions:
+        ProjectName: "ABFilms"
+
+  # log group to check logs from lambda, useful for debug
+  S3IngestUploadTriggerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "abfilms-${Identifier}-${Environment}-s3-trigger/logs"
+      RetentionInDays: !If [IsDev, 7, 90]
+  
+  # Lambda processing upload events: when CSV files are uploaded
+  S3IngestUploadTrigger:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "abfilms-${Identifier}-${Environment}-s3-trigger"
+      CodeUri: src/trigger
+      Handler: main.lambda_handler
+      Runtime: python3.13
+      MemorySize: 128
+      Timeout: 60
+      Policies:
+        - CloudWatchPutMetricPolicy: {}
+        - S3ReadPolicy:
+            BucketName: !Ref IngestS3BucketName
+        - StepFunctionsExecutionPolicy:
+            StateMachineName: !GetAtt ABFilmsMoviePipelineWorkflow.Name
+        - StepFunctionsExecutionPolicy:
+            StateMachineName: !GetAtt ABFilmsShowPipelineWorkflow.Name
+      Environment:
+        Variables:
+          ENVIRONMENT: !Ref Environment
+          S3_OUTPUT_BUCKET: !Ref OutputS3BucketName
+          MEDIACONVERT_ROLE: !Ref MediaconvertRole
+
+          MOVIE_STATE_MACHINE: !Ref ABFilmsMoviePipelineWorkflow    
+          MOVIE_MEDIACONVERT_QUEUE: !Ref MovieMediaConvertQueue
+          MOVIE_MEDIACONVERT_TEMPLATE: !Ref MovieMediaConvertTemplate
+
+          SHOW_STATE_MACHINE: !Ref ABFilmsShowPipelineWorkflow
+          SHOW_MEDIACONVERT_QUEUE: !Ref ShowMediaConvertQueue
+          SHOW_MEDIACONVERT_TEMPLATE: !Ref ShowMediaConvertTemplate
+
+          START_PIPELINE: True
+      LoggingConfig:
+        LogGroup: !Ref S3IngestUploadTriggerLogGroup
+      Events:
+        S3Event:
+          Type: EventBridgeRule
+          Properties:
+            Pattern:
+              source:
+                - aws.s3
+              detail-type:
+                - Object Created
+              detail:
+                bucket:
+                  name:
+                    - !Ref IngestS3BucketName
+                object:
+                  key:
+                    - wildcard: "*.csv"
+
+
+Outputs:
+  S3IngestUploadTriggerArn:
+    Value: !GetAtt S3IngestUploadTrigger.Arn

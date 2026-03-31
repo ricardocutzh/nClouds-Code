@@ -1,0 +1,11 @@
+1
+00:00:01,000 --> 00:00:04,000
+This is a MediaConvert POC test.
+
+2
+00:00:05,000 --> 00:00:08,000
+Validating SRT sidecar input.
+
+3
+00:00:10,000 --> 00:00:15,000
+If you see this, the subtitle transcode worked!

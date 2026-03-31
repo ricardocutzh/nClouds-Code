@@ -1,0 +1,11 @@
+1
+00:00:01,500 --> 00:00:04,000
+Sintel is searching for her dragon.
+
+2
+00:00:05,000 --> 00:00:08,500
+The journey through the snow is difficult.
+
+3
+00:00:09,000 --> 00:00:12,000
+Blender Foundation Open Movie Project.

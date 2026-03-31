@@ -1,0 +1,20 @@
+version = 0.1
+
+# --- DEVELOPMENT ENVIRONMENT ---
+[dev.deploy.parameters]
+stack_name = "abfilms-vod-pipeline-dev-mediaconvert"
+confirm_changeset = false
+fail_on_empty_changeset = false
+capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND CAPABILITY_NAMED_IAM"
+region = "us-east-1"
+tags = "Project=vod-pipeline Environment=dev ManagedBy=SAM Owner=abfilms SourceCodeProject=Infrastructure/abfilms-mediaconvert"
+
+# --- PRODUCTION ENVIRONMENT ---
+[prod.deploy.parameters]
+stack_name = "abfilms-vod-pipeline-prod-mediaconvert"
+parameter_overrides = "Identifier=\"vod-pipeline\" Environment=\"prod\" QueuesStatus=\"ACTIVE\""
+confirm_changeset = true
+fail_on_empty_changeset = true
+capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND CAPABILITY_NAMED_IAM"
+region = "us-east-1"
+tags = "Project=vod-pipeline Environment=prod ManagedBy=SAM Owner=abfilms SourceCodeProject=Infrastructure/abfilms-mediaconvert"

@@ -1,0 +1,9 @@
+{
+  "StartAt": "InitializeShowJob",
+  "States": {
+    "InitializeShowJob": {
+      "Type": "Pass",
+      "End": true
+    }
+  }
+}

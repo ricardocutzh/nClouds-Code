@@ -1,0 +1,159 @@
+{
+    "Queue": "{{ mediaconvert_queue }}",
+    "Role": "{{ mediaconvert_role }}",
+    "Settings": {
+        "OutputGroups": [
+            {
+                "Name": "HLS Group",
+                "Outputs": [
+                    {
+                        "ContainerSettings": {
+                            "Container": "M3U8"
+                        },
+                        "VideoDescription": {
+                            "Width": 1920,
+                            "Height": 1080,
+                            "CodecSettings": {
+                                "Codec": "H_264",
+                                "H264Settings": {
+                                    "GopSize": 2,
+                                    "MaxBitrate": 5000000,
+                                    "RateControlMode": "QVBR",
+                                    "QvbrSettings": {
+                                        "QvbrQualityLevel": 8
+                                    },
+                                    "SceneChangeDetect": "ENABLED"
+                                }
+                            }
+                        },
+                        "AudioDescriptions": [
+                            {
+                                "AudioSourceName": "Audio Selector 1",
+                                "CodecSettings": {
+                                    "Codec": "AAC",
+                                    "AacSettings": {
+                                        "Bitrate": 160000,
+                                        "RateControlMode": "CBR",
+                                        "CodecProfile": "LC",
+                                        "CodingMode": "CODING_MODE_2_0",
+                                        "SampleRate": 48000
+                                    }
+                                }
+                            }
+                        ],
+                        "OutputSettings": {
+                            "HlsSettings": {
+                                "AudioGroupId": "program_audio",
+                                "SegmentModifier": "_1080p"
+                            }
+                        },
+                        "NameModifier": "_1080p"
+                    },
+                    {
+                        "ContainerSettings": {
+                            "Container": "M3U8"
+                        },
+                        "VideoDescription": {
+                            "Width": 1280,
+                            "Height": 720,
+                            "CodecSettings": {
+                                "Codec": "H_264",
+                                "H264Settings": {
+                                    "GopSize": 2,
+                                    "MaxBitrate": 3000000,
+                                    "RateControlMode": "QVBR",
+                                    "QvbrSettings": {
+                                        "QvbrQualityLevel": 7
+                                    }
+                                }
+                            }
+                        },
+                        "AudioDescriptions": [
+                            {
+                                "AudioSourceName": "Audio Selector 1",
+                                "CodecSettings": {
+                                    "Codec": "AAC",
+                                    "AacSettings": {
+                                        "Bitrate": 128000,
+                                        "CodingMode": "CODING_MODE_2_0",
+                                        "SampleRate": 48000
+                                    }
+                                }
+                            }
+                        ],
+                        "OutputSettings": {
+                            "HlsSettings": {
+                                "AudioGroupId": "program_audio",
+                                "SegmentModifier": "_720p"
+                            }
+                        },
+                        "NameModifier": "_720p"
+                    },
+                    {
+                        "ContainerSettings": {
+                            "Container": "M3U8"
+                        },
+                        "VideoDescription": {
+                            "Width": 854,
+                            "Height": 480,
+                            "CodecSettings": {
+                                "Codec": "H_264",
+                                "H264Settings": {
+                                    "GopSize": 2,
+                                    "MaxBitrate": 1000000,
+                                    "RateControlMode": "QVBR",
+                                    "QvbrSettings": {
+                                        "QvbrQualityLevel": 6
+                                    }
+                                }
+                            }
+                        },
+                        "AudioDescriptions": [
+                            {
+                                "AudioSourceName": "Audio Selector 1",
+                                "CodecSettings": {
+                                    "Codec": "AAC",
+                                    "AacSettings": {
+                                        "Bitrate": 96000,
+                                        "CodingMode": "CODING_MODE_2_0",
+                                        "SampleRate": 48000
+                                    }
+                                }
+                            }
+                        ],
+                        "OutputSettings": {
+                            "HlsSettings": {
+                                "AudioGroupId": "program_audio",
+                                "SegmentModifier": "_480p"
+                            }
+                        },
+                        "NameModifier": "_480p"
+                    }
+                ],
+                "OutputGroupSettings": {
+                    "Type": "HLS_GROUP_SETTINGS",
+                    "HlsGroupSettings": {
+                        "SegmentLength": 6,
+                        "Destination": "{{ destination }}",
+                        "MinSegmentLength": 0
+                    }
+                }
+            }
+        ],
+        "Inputs": [
+            {
+                "AudioSelectors": {
+                    "Audio Selector 1": {
+                        "Tracks": [
+                            1
+                        ],
+                        "DefaultSelection": "NOT_DEFAULT",
+                        "SelectorType": "TRACK"
+                    }
+                },
+                "CaptionSelectors": {},
+                "FileInput": "s3://{{ input_bucket }}/{{ input_folder }}/{{ input_mp4_file }}"
+            }
+        ]
+    }
+}
