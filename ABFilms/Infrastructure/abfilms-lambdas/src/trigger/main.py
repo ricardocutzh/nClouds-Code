@@ -74,6 +74,16 @@ def download_s3_to_local(bucket_name: str, s3_key: str, download_dir: str = "/tm
         print(f"An error occurred: {e}")
         raise
 
+
+def cleanup_subtitles(subtitle_data, episode_string):
+
+    clean_array = []
+    for s in subtitle_data:
+        if episode_string in s["sub_file_name"]:
+            clean_array.append(s)
+    
+    return clean_array
+
 def lambda_handler(event, context):
     # 1. Print the event as a formatted JSON string
     # 'indent=4' makes it readable in CloudWatch
@@ -96,11 +106,20 @@ def lambda_handler(event, context):
 
         for d in metadata_json:
 
+            queue = None
+            template = None
+
+            if d["Program Type"].lower() == "movie":
+                queue = os.environ.get('MOVIE_MEDIACONVERT_QUEUE')
+                template = os.environ.get('MOVIE_MEDIACONVERT_TEMPLATE')
+            if d["Program Type"].lower() == "show":
+                queue = os.environ.get('SHOW_MEDIACONVERT_QUEUE')
+                template = os.environ.get('SHOW_MEDIACONVERT_TEMPLATE')
             data = {
                 's3_bucket': str(bucket_name),
                 'out_s3_bucket': str(out_s3),
-                'mediaconvert_template': os.environ.get('MOVIE_MEDIACONVERT_TEMPLATE'),
-                'mediaconvert_queue': os.environ.get('MOVIE_MEDIACONVERT_QUEUE'),
+                'mediaconvert_template': str(template),
+                'mediaconvert_queue': str(queue),
                 'mediaconvert_role': os.environ.get('MEDIACONVERT_ROLE'),
                 'parent_folder': str(object_key).split("/")[0],
                 'origin_metadata_csv': str(object_key),
@@ -140,10 +159,15 @@ def lambda_handler(event, context):
                 show_subtitles_captions_languages = d["Episode Subtitles/Captions Languages"].replace(" ", "").split(",")
                 show_subtitles_captions_types = d["Episode Subtitles/Captions Type"].replace(" ", "").split(",")
                 show_subtitles_captions_filenames = d["Episode Subtitles/Captions Filenames"].replace(" ", "").split(",")
+                episode_string = f"S{d["Season Number"]}E{d["Episode Number"]}_{d["Episode SKU"]}_{d["Episode Name"].replace(" ","_").lower()}"
+
                 subtitle_data = [
                     {"sub_language_code": lcode, "sub_type": stype, "sub_file_name": sfilename}
                     for lcode, stype, sfilename in zip(show_subtitles_captions_languages, show_subtitles_captions_types, show_subtitles_captions_filenames)
                 ]
+
+                subtitle_data = cleanup_subtitles(subtitle_data, episode_string)
+                
                 data["subtitles_data"] = subtitle_data
                 data["episode_name"] = d["Episode Name"]
                 data["season_number"] = d["Season Number"]

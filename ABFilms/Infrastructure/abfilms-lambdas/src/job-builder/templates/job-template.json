@@ -134,7 +134,7 @@
                     "Type": "HLS_GROUP_SETTINGS",
                     "HlsGroupSettings": {
                         "SegmentLength": 6,
-                        "Destination": "s3://{{ out_s3_bucket }}/{{ input_folder }}/output/hls/index",
+                        "Destination": "{{ destination }}",
                         "MinSegmentLength": 0
                     }
                 }

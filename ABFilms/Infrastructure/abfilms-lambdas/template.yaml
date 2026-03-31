@@ -84,49 +84,25 @@ Resources:
     Type: AWS::Serverless::StateMachine
     Properties:
       Name: !Sub abfilms-movies-${Identifier}-${Environment}-statemachine
-      # DefinitionUri: pipeline-definition/movie-pipeline.asl.json
-      # DefinitionSubstitutions:
-      #   JobBuilder: !GetAtt JobBuilder.Arn
       Definition:
         StartAt: MediaConvertJobBuilder
         States:
+
           MediaConvertJobBuilder:
             Type: Task
-            # Use !GetAtt to link your Lambda directly
             Resource: !GetAtt JobBuilder.Arn
-            Next: CreateMediaConvertJob
-            # End: True
+            Next: CreateMediaConvertJobMovies
+            #End: true
           
-          CreateMediaConvertJob:
+          CreateMediaConvertJobMovies:
             Type: Task
             Resource: "arn:aws:states:::mediaconvert:createJob.sync"
             Parameters:
-              # Values from your Lambda output or initial event
-              #"JobTemplate.$": "$.mediaconvert_template"
               "Queue.$": "$.Queue"
               "Role.$": "$.Role"
               "Settings.$": "$.Settings"
-                # "Inputs":
-                #   - "AudioSelectors":
-                #       "Audio Selector 1":
-                #         "DefaultSelection": "NOT_DEFAULT"
-                #         "SelectorType": "TRACK"
-                #         "Tracks": [1]
-                #     # Note: CloudFormation YAML requires quotes around keys with dots (e.g., "FileInput.$")
-                #     "FileInput.$": "States.Format('s3://{}/{}/{}', $.s3_bucket, $.parent_folder, $.original_data['Movie Filename'])"
-                #     "CaptionSelectors":
-                #       "Captions":
-                #         "SourceSettings":
-                #           "SourceType": "SRT"
-                #           "FileSourceSettings":
-                #             "SourceFile.$": "States.Format('s3://{}/{}/{}', $.s3_bucket, $.parent_folder, $.subtitles_data[0].sub_file_name)"
-                # "OutputGroups":
-                #   - "Name": "HLS Group"
-                #     "OutputGroupSettings":
-                #       "Type": "HLS_GROUP_SETTINGS"
-                #       "HlsGroupSettings":
-                #         "Destination.$": "States.Format('s3://{}/{}/output/hls/index', $.out_s3_bucket, $.parent_folder)"
             End: true
+
       Logging:
         Destinations:
           - CloudWatchLogsLogGroup:
@@ -153,7 +129,25 @@ Resources:
     Type: AWS::Serverless::StateMachine
     Properties:
       Name: !Sub abfilms-shows-${Identifier}-${Environment}-statemachine
-      DefinitionUri: pipeline-definition/show-pipeline.asl.json
+      Definition:
+
+        StartAt: MediaConvertJobBuilder
+        States:
+          MediaConvertJobBuilder:
+            Type: Task
+            Resource: !GetAtt JobBuilder.Arn
+            Next: CreateMediaConvertJobShows
+            #End: true
+          
+          CreateMediaConvertJobShows:
+            Type: Task
+            Resource: "arn:aws:states:::mediaconvert:createJob.sync"
+            Parameters:
+              "Queue.$": "$.Queue"
+              "Role.$": "$.Role"
+              "Settings.$": "$.Settings"
+            End: true
+
       Logging:
         Destinations:
           - CloudWatchLogsLogGroup:
@@ -161,7 +155,18 @@ Resources:
         IncludeExecutionData: !If [IsDev, true, false]
         Level: !If [IsDev, "ALL", "ERROR"]
       Policies:
-        - CloudWatchLogsFullAccess 
+        - CloudWatchLogsFullAccess
+        - LambdaInvokePolicy:
+            FunctionName: !Ref JobBuilder
+        - AWSElementalMediaConvertFullAccess
+        - Statement:
+          - Effect: Allow
+            Action:
+            - events:PutTargets
+            - events:PutRule
+            - events:DescribeRule
+            Resource: 
+            - "*"
       DefinitionSubstitutions:
         ProjectName: "ABFilms"
 
@@ -201,6 +206,8 @@ Resources:
           MOVIE_MEDIACONVERT_TEMPLATE: !Ref MovieMediaConvertTemplate
 
           SHOW_STATE_MACHINE: !Ref ABFilmsShowPipelineWorkflow
+          SHOW_MEDIACONVERT_QUEUE: !Ref ShowMediaConvertQueue
+          SHOW_MEDIACONVERT_TEMPLATE: !Ref ShowMediaConvertTemplate
 
           START_PIPELINE: True
       LoggingConfig:
