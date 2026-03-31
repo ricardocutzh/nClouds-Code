@@ -1,8 +1,9 @@
 {
-  "StartAt": "InitializeMovieJob",
+  "StartAt": "MediaConvertJobBuilder",
   "States": {
-    "InitializeMovieJob": {
-      "Type": "Pass",
+    "MediaConvertJobBuilder": {
+      "Type": "Task",
+      "Resource": "${JobBuilder}",
       "Next": "CreateMediaConvertJob"
     },
     "CreateMediaConvertJob": {

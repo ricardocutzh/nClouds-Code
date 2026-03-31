@@ -45,6 +45,29 @@ Conditions:
 
 Resources:
 
+  JobBuilderLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "abfilms-${Identifier}-${Environment}-job-builder/logs"
+      RetentionInDays: !If [IsDev, 7, 90]
+
+  JobBuilder:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "abfilms-${Identifier}-${Environment}-job-builder"
+      CodeUri: src/job-builder
+      Handler: main.lambda_handler
+      Runtime: python3.13
+      MemorySize: 128
+      Timeout: 60
+      Policies:
+        - CloudWatchPutMetricPolicy: {}
+      Environment:
+        Variables:
+          ENVIRONMENT: !Ref Environment
+      LoggingConfig:
+        LogGroup: !Ref JobBuilderLogs
+
   ABFilmsMoviePipelineWorkflowLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -57,18 +80,53 @@ Resources:
       LogGroupName: !Sub "abfilms-shows-${Identifier}-${Environment}-statemachine/logs"
       RetentionInDays: !If [IsDev, 7, 90]
 
-
   ABFilmsMoviePipelineWorkflow:
     Type: AWS::Serverless::StateMachine
     Properties:
       Name: !Sub abfilms-movies-${Identifier}-${Environment}-statemachine
-      DefinitionUri: pipeline-definition/movie-pipeline.asl.json
+      # DefinitionUri: pipeline-definition/movie-pipeline.asl.json
       # DefinitionSubstitutions:
-      #   Testing: value
-      #   Other: test
-      #   MovieHlsTemplate: !Ref MovieMediaConvertTemplate # The logical ID of your template
-      #   MovieQueueArn: !Ref MovieMediaConvertQueue
-      #   MediaConvertRoleArn: !Ref MediaconvertRole
+      #   JobBuilder: !GetAtt JobBuilder.Arn
+      Definition:
+        StartAt: MediaConvertJobBuilder
+        States:
+          MediaConvertJobBuilder:
+            Type: Task
+            # Use !GetAtt to link your Lambda directly
+            Resource: !GetAtt JobBuilder.Arn
+            Next: CreateMediaConvertJob
+            # End: True
+          
+          CreateMediaConvertJob:
+            Type: Task
+            Resource: "arn:aws:states:::mediaconvert:createJob.sync"
+            Parameters:
+              # Values from your Lambda output or initial event
+              #"JobTemplate.$": "$.mediaconvert_template"
+              "Queue.$": "$.Queue"
+              "Role.$": "$.Role"
+              "Settings.$": "$.Settings"
+                # "Inputs":
+                #   - "AudioSelectors":
+                #       "Audio Selector 1":
+                #         "DefaultSelection": "NOT_DEFAULT"
+                #         "SelectorType": "TRACK"
+                #         "Tracks": [1]
+                #     # Note: CloudFormation YAML requires quotes around keys with dots (e.g., "FileInput.$")
+                #     "FileInput.$": "States.Format('s3://{}/{}/{}', $.s3_bucket, $.parent_folder, $.original_data['Movie Filename'])"
+                #     "CaptionSelectors":
+                #       "Captions":
+                #         "SourceSettings":
+                #           "SourceType": "SRT"
+                #           "FileSourceSettings":
+                #             "SourceFile.$": "States.Format('s3://{}/{}/{}', $.s3_bucket, $.parent_folder, $.subtitles_data[0].sub_file_name)"
+                # "OutputGroups":
+                #   - "Name": "HLS Group"
+                #     "OutputGroupSettings":
+                #       "Type": "HLS_GROUP_SETTINGS"
+                #       "HlsGroupSettings":
+                #         "Destination.$": "States.Format('s3://{}/{}/output/hls/index', $.out_s3_bucket, $.parent_folder)"
+            End: true
       Logging:
         Destinations:
           - CloudWatchLogsLogGroup:
@@ -77,6 +135,8 @@ Resources:
         Level: !If [IsDev, "ALL", "ERROR"]
       Policies:
         - CloudWatchLogsFullAccess
+        - LambdaInvokePolicy:
+            FunctionName: !Ref JobBuilder
         - AWSElementalMediaConvertFullAccess
         - Statement:
           - Effect: Allow
@@ -141,6 +201,8 @@ Resources:
           MOVIE_MEDIACONVERT_TEMPLATE: !Ref MovieMediaConvertTemplate
 
           SHOW_STATE_MACHINE: !Ref ABFilmsShowPipelineWorkflow
+
+          START_PIPELINE: True
       LoggingConfig:
         LogGroup: !Ref S3IngestUploadTriggerLogGroup
       Events:
