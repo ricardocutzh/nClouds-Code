@@ -6,6 +6,7 @@ from jinja2 import Template
 import pycountry
 
 environment = os.environ.get("ENVIRONMENT")
+cf_endpoint = os.environ.get("CLOUDFRONT_ENDPOINT")
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
@@ -144,6 +145,35 @@ def add_captions_descriptions(processed_object, caption_descriptions):
     for c in caption_descriptions:
         processed_object["Settings"]["OutputGroups"][0]["Outputs"].append(c)
 
+def add_metadata(type, result_object, original_data):
+
+    metadata = {}
+
+    if type == "show":
+        Season = f"Season_{original_data["Season Number"].replace(" ", "")}"
+        EpisodeNumber = f"Episode_{original_data["Episode Number"].replace(" ", "")}"
+        EpisodeName = original_data["Episode Name"].replace(" ", "_")
+        Title = original_data["Movie/Show Title"].replace(" ", "_")
+        metadata = {
+            "Type": "Show",
+            "Environment": str(environment),
+            "Season": str(Season),
+            "Episode": str(EpisodeNumber),
+            "Episode Name": str(EpisodeName),
+            "Title": str(Title),
+            "MasterFileURL": f"https://{cf_endpoint}/Shows/{Title}/{Season}/{EpisodeNumber}_{EpisodeName}/output/hls/index.m3u8"
+        }
+        
+    if type == "movie":
+        Title = original_data["Movie/Show Title"].replace(" ", "_")
+        metadata = {
+            "Type": "Movie",
+            "Environment": str(environment),
+            "Title": str(Title),
+            "MasterFileURL": f"https://{cf_endpoint}/Movies/{Title}/output/hls/index.m3u8"
+        }
+
+    result_object["UserMetadata"] = metadata
 
 def add_selectos(processed_object, caption_selectors):
 
@@ -195,6 +225,10 @@ def lambda_handler(event, context):
         add_captions_descriptions(json_object, generated_captions["subtitles_outputs"] )
 
         logger.info(json.dumps(json_object))
+
+        add_metadata(event["type"], json_object, event["original_data"])
+
+        json_object["Original_CSV_Data"] = event["original_data"]
         return json_object
     except Exception as e:
         logger.error(f">> Error parsing event: Missing key {str(e)}")
