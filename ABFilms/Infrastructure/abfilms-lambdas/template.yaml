@@ -43,6 +43,14 @@ Parameters:
   CloudfrontEndpoint:
     Type: String
 
+  DRMTodayApiEndpoint:
+    Type: String
+    Default: "NOT_SET"
+
+  DRMTodaySystemIds:
+    Type: String
+    Default: "NOT_SET"
+
 Conditions:
   IsDev: !Equals [!Ref Environment, "dev"]
 
@@ -61,14 +69,16 @@ Resources:
       CodeUri: src/job-builder
       Handler: main.lambda_handler
       Runtime: python3.13
-      MemorySize: 128
-      Timeout: 60
+      MemorySize: 256
+      Timeout: 120
       Policies:
         - CloudWatchPutMetricPolicy: {}
       Environment:
         Variables:
           ENVIRONMENT: !Ref Environment
           CLOUDFRONT_ENDPOINT: !Ref CloudfrontEndpoint
+          DRMTODAY_API_ENDPOINT: !Ref DRMTodayApiEndpoint
+          DRMTODAY_SYSTEM_IDS: !Ref DRMTodaySystemIds
       LoggingConfig:
         LogGroup: !Ref JobBuilderLogs
 
@@ -193,8 +203,8 @@ Resources:
       CodeUri: src/trigger
       Handler: main.lambda_handler
       Runtime: python3.13
-      MemorySize: 128
-      Timeout: 60
+      MemorySize: 256
+      Timeout: 120
       Policies:
         - CloudWatchPutMetricPolicy: {}
         - S3ReadPolicy:

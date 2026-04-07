@@ -18,6 +18,9 @@ environment = os.environ.get("ENVIRONMENT")
 out_s3 = os.environ.get("S3_OUTPUT_BUCKET")
 start_pipeline = str(os.environ.get("START_PIPELINE"))
 
+movies_sku = []
+shows_sku = []
+
 def csv_to_json_object(file_path: str):
     """
     Reads a CSV file and returns a list of dictionaries (JSON-like object).
@@ -112,9 +115,17 @@ def lambda_handler(event, context):
             if d["Program Type"].lower() == "movie":
                 queue = os.environ.get('MOVIE_MEDIACONVERT_QUEUE')
                 template = os.environ.get('MOVIE_MEDIACONVERT_TEMPLATE')
+                if d["Movie/Show Filmhub SKU"] in movies_sku: # MOVIE ALREADY SENT TO THE PIPELINE
+                    continue
+                else:
+                    movies_sku.append(str(d["Movie/Show Filmhub SKU"]))
             if d["Program Type"].lower() == "show":
                 queue = os.environ.get('SHOW_MEDIACONVERT_QUEUE')
                 template = os.environ.get('SHOW_MEDIACONVERT_TEMPLATE')
+                if d["Episode SKU"] in shows_sku: # SHOW ALREADY SENT TO THE PIPELINE
+                    continue
+                else:
+                    shows_sku.append(str(d["Episode SKU"]))
             data = {
                 's3_bucket': str(bucket_name),
                 'out_s3_bucket': str(out_s3),

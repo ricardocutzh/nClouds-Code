@@ -8,5 +8,7 @@
     "MovieMediaConvertQueue": "arn:aws:mediaconvert:us-east-1:225707668146:queues/abfilms-vod-pipeline-prod-movie-queue",
     "ShowMediaConvertTemplate": "arn:aws:mediaconvert:us-east-1:225707668146:jobTemplates/abfilms-vod-pipeline-prod-shows-hls-ladder",
     "ShowMediaConvertQueue": "arn:aws:mediaconvert:us-east-1:225707668146:queues/abfilms-vod-pipeline-prod-show-queue",
-    "CloudfrontEndpoint": "d27y62lnm1dcpo.cloudfront.net"
+    "CloudfrontEndpoint": "d27y62lnm1dcpo.cloudfront.net",
+    "DRMTodayApiEndpoint": "https://pav6qdhd31.execute-api.us-east-1.amazonaws.com/live/speke/v1.0/copyProtection",
+    "DRMTodaySystemIds": "edef8ba9-79d6-4ace-a3c8-27dcd51d21ed,9a04f079-9840-4286-ab92-e65be0885f95,94ce86fb-07ff-4f43-adb8-93d2fa968ca2"
 }
