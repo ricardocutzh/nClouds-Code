@@ -16,10 +16,30 @@ Parameters:
     Description: queues status setup
     Type: String
 
+  DRMTodayApiResourceArn:
+    Description: DRMToday Integration API Arn
+    Type: String
+    Default: ""
+
 Conditions:
   IsDev: !Equals [!Ref Environment, "dev"]
+  CreateDRMPolicy: !Not [!Equals [!Ref DRMTodayApiResourceArn, ""]]
 
 Resources:
+
+  DRMTodayInvokePolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Condition: CreateDRMPolicy
+    Properties:
+      ManagedPolicyName: !Sub "abfilms-${Identifier}-${Environment}-drmtoday-invoke-policy"
+      Description: "Policy to allow invoking the DRMToday API"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Action:
+              - "execute-api:Invoke"
+            Resource: !Ref DRMTodayApiResourceArn
 
   MediaConvertRole:
     Type: AWS::IAM::Role
@@ -32,6 +52,9 @@ Resources:
             Principal:
               Service: mediaconvert.amazonaws.com
             Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/CloudWatchEventsFullAccess
+        - !If [CreateDRMPolicy, !Ref DRMTodayInvokePolicy, !Ref "AWS::NoValue"]
       Policies:
         - PolicyName: MediaConvertS3Access
           PolicyDocument:
