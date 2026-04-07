@@ -2,7 +2,7 @@
 
 ENV=$1
 
-S3_BUCKET=deleteme-ricardo-codepipeline
+S3_BUCKET=$2
 
 sam build --use-container
 

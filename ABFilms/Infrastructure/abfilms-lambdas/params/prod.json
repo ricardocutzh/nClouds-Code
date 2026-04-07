@@ -1,0 +1,12 @@
+{
+    "Identifier": "vod-pipeline",
+    "Environment": "prod",
+    "IngestS3BucketName": "abfilms-us-east-1-225707668146-filmhub-ingest",
+    "OutputS3BucketName": "abfilms-us-east-1-225707668146-output",
+    "MediaconvertRole": "arn:aws:iam::225707668146:role/abfilms-us-east-1-vod-pipeline-prod-mediaconvert-role",
+    "MovieMediaConvertTemplate": "arn:aws:mediaconvert:us-east-1:225707668146:jobTemplates/abfilms-vod-pipeline-prod-movies-hls-ladder",
+    "MovieMediaConvertQueue": "arn:aws:mediaconvert:us-east-1:225707668146:queues/abfilms-vod-pipeline-prod-movie-queue",
+    "ShowMediaConvertTemplate": "arn:aws:mediaconvert:us-east-1:225707668146:jobTemplates/abfilms-vod-pipeline-prod-shows-hls-ladder",
+    "ShowMediaConvertQueue": "arn:aws:mediaconvert:us-east-1:225707668146:queues/abfilms-vod-pipeline-prod-show-queue",
+    "CloudfrontEndpoint": "d27y62lnm1dcpo.cloudfront.net"
+}
