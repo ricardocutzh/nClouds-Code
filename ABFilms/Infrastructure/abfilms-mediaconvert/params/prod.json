@@ -1,0 +1,6 @@
+{
+    "Identifier": "vod-pipeline",
+    "Environment": "prod",
+    "QueuesStatus": "ACTIVE",
+    "DRMTodayApiResourceArn": "arn:aws:execute-api:us-east-1:225707668146:pav6qdhd31/*"
+}

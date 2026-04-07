@@ -1,6 +1,7 @@
 {
     "Queue": "{{ mediaconvert_queue }}",
     "Role": "{{ mediaconvert_role }}",
+    "UserMetadata": {},
     "Settings": {
         "OutputGroups": [
             {

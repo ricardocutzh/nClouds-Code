@@ -6,6 +6,10 @@ from jinja2 import Template
 import pycountry
 
 environment = os.environ.get("ENVIRONMENT")
+cf_endpoint = os.environ.get("CLOUDFRONT_ENDPOINT")
+drm_api_endpoint = os.environ.get("DRMTODAY_API_ENDPOINT")
+drm_system_ids = str(os.environ.get("DRMTODAY_SYSTEM_IDS"))
+
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
@@ -31,6 +35,20 @@ logger.setLevel(logging.INFO)
 #     "TSN", "TUR", "TUK", "TWI", "UIG", "UKR", "UZB", "VEN", "VOL", "WLN", 
 #     "CYM", "FRY", "WOL", "XHO", "YID", "YOR", "ZHA", "ZUL", "ORJ", "QPC", "TNG"
 # ]
+
+def setup_drm_encryption(result_object, resource_id):
+    for og in result_object["Settings"]["OutputGroups"]:
+        og["OutputGroupSettings"]["HlsGroupSettings"]["Encryption"] = {
+            "EncryptionMethod": "SAMPLE_AES",
+            "SpekeKeyProvider": {
+                "ResourceId": str(resource_id),
+                "SystemIds": drm_system_ids.split(","),
+                "Url": str(drm_api_endpoint)
+            },
+            "Type": "SPEKE"
+        }
+    
+
 
 def map_to_mediaconvert_lang(input_code):
     """
@@ -144,6 +162,44 @@ def add_captions_descriptions(processed_object, caption_descriptions):
     for c in caption_descriptions:
         processed_object["Settings"]["OutputGroups"][0]["Outputs"].append(c)
 
+def add_metadata(type, result_object, original_data):
+
+    metadata = {}
+    MasterFileUrl = None
+
+    if type == "show":
+        Season = f"Season_{original_data["Season Number"].replace(" ", "")}"
+        EpisodeNumber = f"Episode_{original_data["Episode Number"].replace(" ", "")}"
+        EpisodeName = original_data["Episode Name"].replace(" ", "_")
+        Title = original_data["Movie/Show Title"].replace(" ", "_")
+        if drm_api_endpoint != "NOT_SET" and drm_system_ids != "NOT_SET":
+            MasterFileUrl = f"https://{cf_endpoint}/Shows/{Title}/{Season}/{EpisodeNumber}_{EpisodeName}_{original_data["Episode SKU"]}/output/hls/index.m3u8"
+        else: 
+            MasterFileUrl = f"https://{cf_endpoint}/Shows/{Title}/{Season}/{EpisodeNumber}_{EpisodeName}/output/hls/index.m3u8"
+        metadata = {
+            "Type": "Show",
+            "Environment": str(environment),
+            "Season": str(Season),
+            "Episode": str(EpisodeNumber),
+            "Episode Name": str(EpisodeName),
+            "Title": str(Title),
+            "MasterFileURL": str(MasterFileUrl)
+        }
+        
+    if type == "movie":
+        Title = original_data["Movie/Show Title"].replace(" ", "_")
+        if drm_api_endpoint != "NOT_SET" and drm_system_ids != "NOT_SET":
+            MasterFileUrl = f"https://{cf_endpoint}/Movies/{Title}_{original_data["Movie/Show Filmhub SKU"]}/output/hls/index.m3u8"
+        else: 
+            MasterFileUrl = f"https://{cf_endpoint}/Movies/{Title}/output/hls/index.m3u8"
+        metadata = {
+            "Type": "Movie",
+            "Environment": str(environment),
+            "Title": str(Title),
+            "MasterFileURL": str(MasterFileUrl)
+        }
+
+    result_object["UserMetadata"] = metadata
 
 def add_selectos(processed_object, caption_selectors):
 
@@ -161,17 +217,26 @@ def lambda_handler(event, context):
 
         destination = None
         input_mp4_file = None
+        resource_id = None
 
         if event["type"] == "movie":
-            destination = f"s3://{event["out_s3_bucket"]}/Movies/{event["original_data"]["Movie/Show Title"].replace(" ", "_")}/output/hls/index"
+            if drm_api_endpoint != "NOT_SET" and drm_system_ids != "NOT_SET":
+                destination = f"s3://{event["out_s3_bucket"]}/Movies/{event["original_data"]["Movie/Show Title"].replace(" ", "_")}_{event["original_data"]["Movie/Show Filmhub SKU"]}/output/hls/index"
+            else:
+                destination = f"s3://{event["out_s3_bucket"]}/Movies/{event["original_data"]["Movie/Show Title"].replace(" ", "_")}/output/hls/index"
             input_mp4_file = event["original_data"]["Movie Filename"]
+            resource_id = f"{event["original_data"]["Movie/Show Filmhub SKU"]}"
         if event["type"] == "show":
             input_mp4_file = event["original_data"]["Episode Filename"]
             Season = f"Season_{event["original_data"]["Season Number"].replace(" ", "")}"
             EpisodeNumber = f"Episode_{event["original_data"]["Episode Number"].replace(" ", "")}"
             EpisodeName = event["original_data"]["Episode Name"].replace(" ", "_")
             Title = event["original_data"]["Movie/Show Title"].replace(" ", "_")
-            destination = f"s3://{event["out_s3_bucket"]}/Shows/{Title}/{Season}/{EpisodeNumber}_{EpisodeName}/output/hls/index"
+            if drm_api_endpoint != "NOT_SET" and drm_system_ids != "NOT_SET":
+                destination = f"s3://{event["out_s3_bucket"]}/Shows/{Title}/{Season}/{EpisodeNumber}_{EpisodeName}_{event["original_data"]["Episode SKU"]}/output/hls/index"
+            else:
+                destination = f"s3://{event["out_s3_bucket"]}/Shows/{Title}/{Season}/{EpisodeNumber}_{EpisodeName}/output/hls/index"
+            resource_id = f"{event["original_data"]["Episode SKU"]}"
 
         variables = {
             "mediaconvert_queue": event["mediaconvert_queue"],
@@ -195,6 +260,13 @@ def lambda_handler(event, context):
         add_captions_descriptions(json_object, generated_captions["subtitles_outputs"] )
 
         logger.info(json.dumps(json_object))
+
+        add_metadata(event["type"], json_object, event["original_data"])
+
+        json_object["Original_CSV_Data"] = event["original_data"]
+
+        if drm_api_endpoint != "NOT_SET" and drm_system_ids != "NOT_SET":
+            setup_drm_encryption(json_object, resource_id)
         return json_object
     except Exception as e:
         logger.error(f">> Error parsing event: Missing key {str(e)}")
