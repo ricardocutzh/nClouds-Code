@@ -1,0 +1,60 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Monitoring Resources In AWS
+
+Parameters:
+  Identifier:
+    Type: String
+  Environment:
+    Type: String
+
+Conditions:
+  IsProd: !Equals [!Ref Environment, "prod"]
+
+Resources:
+
+  ObserverLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "abfilms-shows-${Identifier}-${Environment}-observer/logs"
+      RetentionInDays: !If [IsProd, 90, 7]
+
+  StateMachineObserverFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "abfilms-${Identifier}-${Environment}-observer"
+      LoggingConfig:
+        LogGroup: !Ref ObserverLogGroup
+      InlineCode: |
+        import json
+        def lambda_handler(event, context):
+            detail = event.get('detail', {})
+            print(f"Workflow {detail.get('stateMachineArn')} is now {detail.get('status')}")
+            return {"statusCode": 200}
+      Handler: index.lambda_handler
+      Runtime: python3.13
+      Policies:
+        - CloudWatchPutMetricPolicy: {}
+
+
+  StateMachineEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "Detects Step Functions Execution Status Changes"
+      State: "ENABLED"
+      EventPattern:
+        source:
+          - "aws.states"
+        detail-type:
+          - "Step Functions Execution Status Change"
+      Targets:
+        - Arn: !GetAtt StateMachineObserverFunction.Arn
+          Id: "TargetLambdaV1"
+
+  PermissionForEventsToInvokeLambda:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref StateMachineObserverFunction
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn: !GetAtt StateMachineEventRule.Arn
