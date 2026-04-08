@@ -47,8 +47,6 @@ def setup_drm_encryption(result_object, resource_id):
             },
             "Type": "SPEKE"
         }
-    
-
 
 def map_to_mediaconvert_lang(input_code):
     """
@@ -88,9 +86,9 @@ def map_to_mediaconvert_lang(input_code):
             "LanguageCode": mc_code.upper(), 
             "LanguageDescription": mc_desc
         }
-    except (LookupError, AttributeError):
-        # 4. Fallback for unknown codes
-        return None
+    except Exception as e:
+        logger.error(f">> Function: map_to_mediaconvert_lang: {str(e)}")
+        raise Exception(f">> Function: map_to_mediaconvert_lang: {str(e)}")
 
 def generate_captions(subtitles_data, input_bucket, input_folder):
 
@@ -269,8 +267,5 @@ def lambda_handler(event, context):
             setup_drm_encryption(json_object, resource_id)
         return json_object
     except Exception as e:
-        logger.error(f">> Error parsing event: Missing key {str(e)}")
-        return {
-            "statusCode": 500,
-            "body": "Invalid event format"
-        }
+        logger.error(f">> Function: lambda_handler: {str(e)}")
+        raise Exception(f">> Function: lambda_handler: {str(e)}")
