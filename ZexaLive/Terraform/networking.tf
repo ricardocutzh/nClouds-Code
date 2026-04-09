@@ -53,7 +53,7 @@ module "vpc_endpoints" {
 }
 
 module "vpc_sgs" {
-  for_each = toset(local.sg_groups_names)
+  for_each = local.config.networking_config.enable ? toset(local.sg_groups_names) : toset([])
   source = "terraform-aws-modules/security-group/aws"
   version = "5.3.1"
 
