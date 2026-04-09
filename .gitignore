@@ -3,3 +3,5 @@ output/
 .env
 .aws-sam
 .DS_Store
+.terraform
+.terraform.lock.hcl
