@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Ingenio Magadela - Permission Sets for DBA
+
+Parameters:
+
+  InstanceArn:
+    Type: String
+    Description: The ARN of the IAM Identity Center instance (e.g., arn:aws:sso:::instance/ssoins-xxxxx)
+
+  Identifier:
+    Type: String
+    Description: Identifier
+
+Resources:
+  DBPermissionSet:
+    Type: AWS::SSO::PermissionSet
+    Properties:
+      Name: !Sub ${Identifier}_DBAPermissions
+      Description: Permisos limitados para DBAs
+      InstanceArn: !Ref InstanceArn
+      SessionDuration: PT2H
+      InlinePolicy:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - "secretsmanager:*"
+            Resource: arn:aws:secretsmanager:us-east-1:690531319584:secret:global-secret-olMKwD # Prod Global Secret - https://us-east-1.console.aws.amazon.com/secretsmanager/secret?name=global-secret&region=us-east-1
+
+          - Effect: Allow
+            Action:
+              - "secretsmanager:ListSecrets"
+            Resource: "*"
+
+Outputs:
+  PermissionSetArn:
+    Description: The ARN of the created Permission Set
+    Value: !GetAtt DBPermissionSet.PermissionSetArn
