@@ -66,7 +66,8 @@ def map_to_mediaconvert_lang(input_code):
         "FR":     {"LanguageCode": "FRA", "LanguageDescription": "French"},
         "NL":     {"LanguageCode": "NLD", "LanguageDescription": "Dutch"},
         "HY":     {"LanguageCode": "HYE", "LanguageDescription": "Armenian"},
-        "EN":     {"LanguageCode": "ENG", "LanguageDescription": "English"}
+        "EN":     {"LanguageCode": "ENG", "LanguageDescription": "English"},
+        "EN-US":  {"LanguageCode": "ENG", "LanguageDescription": "English"},
     }
     
     if raw_code in overrides:
