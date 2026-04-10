@@ -1,0 +1,511 @@
+{
+  "Queue": "arn:aws:mediaconvert:us-east-1:412393146416:queues/abfilms-vod-pipeline-dev-show-queue",
+  "Role": "arn:aws:iam::412393146416:role/abfilms-us-east-1-vod-pipeline-dev-mediaconvert-role",
+  "UserMetadata": {
+    "Type": "Show",
+    "Environment": "dev",
+    "Season": "Season_5",
+    "Episode": "Episode_3",
+    "Episode Name": "Llamigos",
+    "Title": "Caminandes",
+    "MasterFileURL": "https://djw9advhhoy8d.cloudfront.net/Shows/Caminandes/Season_5/Episode_3_Llamigos/output/hls/index.m3u8"
+  },
+  "Settings": {
+    "OutputGroups": [
+      {
+        "Name": "HLS Group",
+        "Outputs": [
+          {
+            "ContainerSettings": {
+              "Container": "M3U8"
+            },
+            "VideoDescription": {
+              "Width": 1920,
+              "Height": 1080,
+              "CodecSettings": {
+                "Codec": "H_264",
+                "H264Settings": {
+                  "GopSize": 2,
+                  "MaxBitrate": 5000000,
+                  "RateControlMode": "QVBR",
+                  "QvbrSettings": {
+                    "QvbrQualityLevel": 8
+                  },
+                  "SceneChangeDetect": "ENABLED"
+                }
+              }
+            },
+            "AudioDescriptions": [
+              {
+                "AudioSourceName": "Audio Selector 1",
+                "CodecSettings": {
+                  "Codec": "AAC",
+                  "AacSettings": {
+                    "Bitrate": 160000,
+                    "RateControlMode": "CBR",
+                    "CodecProfile": "LC",
+                    "CodingMode": "CODING_MODE_2_0",
+                    "SampleRate": 48000
+                  }
+                }
+              }
+            ],
+            "OutputSettings": {
+              "HlsSettings": {
+                "AudioGroupId": "program_audio",
+                "SegmentModifier": "_1080p"
+              }
+            },
+            "NameModifier": "_1080p"
+          },
+          {
+            "ContainerSettings": {
+              "Container": "M3U8"
+            },
+            "VideoDescription": {
+              "Width": 1280,
+              "Height": 720,
+              "CodecSettings": {
+                "Codec": "H_264",
+                "H264Settings": {
+                  "GopSize": 2,
+                  "MaxBitrate": 3000000,
+                  "RateControlMode": "QVBR",
+                  "QvbrSettings": {
+                    "QvbrQualityLevel": 7
+                  }
+                }
+              }
+            },
+            "AudioDescriptions": [
+              {
+                "AudioSourceName": "Audio Selector 1",
+                "CodecSettings": {
+                  "Codec": "AAC",
+                  "AacSettings": {
+                    "Bitrate": 128000,
+                    "CodingMode": "CODING_MODE_2_0",
+                    "SampleRate": 48000
+                  }
+                }
+              }
+            ],
+            "OutputSettings": {
+              "HlsSettings": {
+                "AudioGroupId": "program_audio",
+                "SegmentModifier": "_720p"
+              }
+            },
+            "NameModifier": "_720p"
+          },
+          {
+            "ContainerSettings": {
+              "Container": "M3U8"
+            },
+            "VideoDescription": {
+              "Width": 854,
+              "Height": 480,
+              "CodecSettings": {
+                "Codec": "H_264",
+                "H264Settings": {
+                  "GopSize": 2,
+                  "MaxBitrate": 1000000,
+                  "RateControlMode": "QVBR",
+                  "QvbrSettings": {
+                    "QvbrQualityLevel": 6
+                  }
+                }
+              }
+            },
+            "AudioDescriptions": [
+              {
+                "AudioSourceName": "Audio Selector 1",
+                "CodecSettings": {
+                  "Codec": "AAC",
+                  "AacSettings": {
+                    "Bitrate": 96000,
+                    "CodingMode": "CODING_MODE_2_0",
+                    "SampleRate": 48000
+                  }
+                }
+              }
+            ],
+            "OutputSettings": {
+              "HlsSettings": {
+                "AudioGroupId": "program_audio",
+                "SegmentModifier": "_480p"
+              }
+            },
+            "NameModifier": "_480p"
+          },
+          {
+            "NameModifier": "_vtt_en",
+            "ContainerSettings": {
+              "Container": "M3U8"
+            },
+            "CaptionDescriptions": [
+              {
+                "CaptionSelectorName": "EN",
+                "DestinationSettings": {
+                  "DestinationType": "WEBVTT"
+                },
+                "LanguageCode": "ENG",
+                "LanguageDescription": "English"
+              }
+            ]
+          }
+        ],
+        "OutputGroupSettings": {
+          "Type": "HLS_GROUP_SETTINGS",
+          "HlsGroupSettings": {
+            "SegmentLength": 6,
+            "Destination": "s3://abfilms-us-east-1-412393146416-output/Shows/Caminandes/Season_5/Episode_3_Llamigos/output/hls/index",
+            "MinSegmentLength": 0
+          }
+        }
+      }
+    ],
+    "Inputs": [
+      {
+        "AudioSelectors": {
+          "Audio Selector 1": {
+            "Tracks": [
+              1
+            ],
+            "DefaultSelection": "NOT_DEFAULT",
+            "SelectorType": "TRACK"
+          }
+        },
+        "CaptionSelectors": {
+          "EN": {
+            "SourceSettings": {
+              "SourceType": "SRT",
+              "FileSourceSettings": {
+                "SourceFile": "s3://abfilms-us-east-1-412393146416-nclouds-ingest/5757-2373_caminandes_370309/S5E3_9589-8ee2_llamigos_en.srt"
+              }
+            }
+          }
+        },
+        "FileInput": "s3://abfilms-us-east-1-412393146416-nclouds-ingest/5757-2373_caminandes_370309/S5E3_9589-8ee2_llamigos_main.mp4"
+      }
+    ]
+  },
+  "Original_CSV_Data": {
+    "Template Description": "Filmhub CSV Metadata 3.0 - Filmhub Movies & Shows",
+    "Program Type": "Show",
+    "Template Version": "3.0",
+    "Movie/Show Filmhub SKU": "5757-2373",
+    "Movie/Show Title": "Caminandes",
+    "Movie/Show Synopsis": "The Caminandes cartoon series follows our hero Koro the Llama as he explores Patagonia, attempts to overcome various obstacles, and becomes friends with Oti the \"pesky\" penguin.",
+    "Movie/Show Sales Pitch": "Short animated films made in the Netherlands by the Blender Institute, well known for realizing the open source short animation films \"Big Buck Bunny\" and \"Sintel\". Crowd funded, they use a complete open source pipeline for producing high quality visual effects.",
+    "Genre": "Animation",
+    "Festivals": "Festival de Córdoba, Best Score for an Animated Short Film",
+    "Cast": "Hjalti Hjálmarsson",
+    "Director(s)": "Pablo Vazquez",
+    "Writer(s)": "Beorn Leonard",
+    "Producer(s)": "Ton Roosendaal",
+    "Movie Running Time": "",
+    "Production Year": "2013",
+    "Country of Origin": "Netherlands",
+    "Original Spoken Language": "English",
+    "Production Company": "Blender Foundation",
+    "Copyright": "2013 Blender Foundation",
+    "Studio": "Filmhub",
+    "IMDb ID": "tt7993892",
+    "IMDb Link": "https://www.imdb.com/title/tt7993892",
+    "Rating System": "",
+    "Rating": "",
+    "Voluntary Rating(s)": "",
+    "Tag(s)": "Crowdfund, Desert, animals, blender, children, lakes, llama, mountain, nature, open source, penguin, south america, vfx",
+    "Movie Chapters/Ad Breaks": "",
+    "Avail Type(s)": "svod, tvod",
+    "Avail Start": "open",
+    "Avail End": "open",
+    "Avail Countries Included": "",
+    "Avail Countries Excluded": "",
+    "Movie Filename": "",
+    "Movie Audio Type": "",
+    "Trailer": "Yes",
+    "Trailer Audio Type": "Stereo",
+    "Trailer Filename": "5757-2373_caminandes_trailer.mp4",
+    "Movie Subtitles/Captions Languages": "",
+    "Movie Subtitles/Captions Types": "",
+    "Movie Subtitles/Captions Filenames": "",
+    "Key Art 2:3 Filename": "S0E0_5757-2373_caminandes_2x3.jpg",
+    "Key Art 3:4 Filename": "S0E0_5757-2373_caminandes_3x4.jpg",
+    "Key Art 16:9 Filename": "S0E0_5757-2373_caminandes_16x9.jpg",
+    "Textless Hero 16:9 Filename": "S0E0_5757-2373_caminandes_16x9_textless.jpg",
+    "Other Key Art Filenames": "S0E0_5757-2373_caminandes_4x3.jpg",
+    "Other Images Filenames": "",
+    "Episode SKU": "9589-8ee2",
+    "Episode Name": "Llamigos",
+    "Season Number": "5",
+    "Episode Number": "3",
+    "Episode Synopsis": "Koro meets Oti, a pesky Magellanic penguin, in an epic battle over tasty red berries during the winter.",
+    "Episode Language": "en",
+    "Episode Chapters/Ad Breaks": "00:00:00:00,00:01:03:00,00:02:24:12",
+    "Episode Running Time": "2",
+    "Episode Filename": "S5E3_9589-8ee2_llamigos_main.mp4",
+    "Episode Subtitles/Captions Filenames": "S5E1_6b49-253d_llama_drama_en.srt, S5E2_ee7c-bf1c_gran_dillama_en.srt, S5E2_ee7c-bf1c_gran_dillama_pt.srt, S5E3_9589-8ee2_llamigos_en.srt",
+    "Episode Subtitles/Captions Languages": "en, en, pt-BR, en",
+    "Episode Subtitles/Captions Type": "subtitles, sdh, sdh, sdh",
+    "Episode Season Name": ""
+  },
+  "JobResult": {
+    "Job": {
+      "AccelerationSettings": {
+        "Mode": "DISABLED"
+      },
+      "AccelerationStatus": "NOT_APPLICABLE",
+      "Arn": "arn:aws:mediaconvert:us-east-1:412393146416:jobs/1775601854237-7hvtb3",
+      "BillingTagsSource": "JOB",
+      "ClientRequestToken": "edcd5a45-ef20-43d7-bffa-fb85781ec230",
+      "CreatedAt": "2026-04-07T22:44:14Z",
+      "Id": "1775601854237-7hvtb3",
+      "Messages": {
+        "Info": [],
+        "Warning": []
+      },
+      "OutputGroupDetails": [
+        {
+          "OutputDetails": [
+            {
+              "DurationInMs": 150041,
+              "VideoDetails": {
+                "HeightInPx": 1080,
+                "WidthInPx": 1920
+              }
+            },
+            {
+              "DurationInMs": 150041,
+              "VideoDetails": {
+                "HeightInPx": 720,
+                "WidthInPx": 1280
+              }
+            },
+            {
+              "DurationInMs": 150041,
+              "VideoDetails": {
+                "HeightInPx": 480,
+                "WidthInPx": 854
+              }
+            },
+            {
+              "DurationInMs": 0
+            }
+          ]
+        }
+      ],
+      "Priority": 0,
+      "Queue": "arn:aws:mediaconvert:us-east-1:412393146416:queues/abfilms-vod-pipeline-dev-show-queue",
+      "Role": "arn:aws:iam::412393146416:role/abfilms-us-east-1-vod-pipeline-dev-mediaconvert-role",
+      "Settings": {
+        "Inputs": [
+          {
+            "AudioSelectors": {
+              "Audio Selector 1": {
+                "DefaultSelection": "NOT_DEFAULT",
+                "SelectorType": "TRACK",
+                "Tracks": [
+                  1
+                ]
+              }
+            },
+            "CaptionSelectors": {
+              "EN": {
+                "SourceSettings": {
+                  "FileSourceSettings": {
+                    "SourceFile": "s3://abfilms-us-east-1-412393146416-nclouds-ingest/5757-2373_caminandes_370309/S5E3_9589-8ee2_llamigos_en.srt"
+                  },
+                  "SourceType": "SRT"
+                }
+              }
+            },
+            "FileInput": "s3://abfilms-us-east-1-412393146416-nclouds-ingest/5757-2373_caminandes_370309/S5E3_9589-8ee2_llamigos_main.mp4"
+          }
+        ],
+        "OutputGroups": [
+          {
+            "Name": "HLS Group",
+            "OutputGroupSettings": {
+              "HlsGroupSettings": {
+                "Destination": "s3://abfilms-us-east-1-412393146416-output/Shows/Caminandes/Season_5/Episode_3_Llamigos/output/hls/index",
+                "MinSegmentLength": 0,
+                "SegmentLength": 6
+              },
+              "Type": "HLS_GROUP_SETTINGS"
+            },
+            "Outputs": [
+              {
+                "AudioDescriptions": [
+                  {
+                    "AudioSourceName": "Audio Selector 1",
+                    "CodecSettings": {
+                      "AacSettings": {
+                        "Bitrate": 160000,
+                        "CodecProfile": "LC",
+                        "CodingMode": "CODING_MODE_2_0",
+                        "RateControlMode": "CBR",
+                        "SampleRate": 48000
+                      },
+                      "Codec": "AAC"
+                    }
+                  }
+                ],
+                "ContainerSettings": {
+                  "Container": "M3U8"
+                },
+                "NameModifier": "_1080p",
+                "OutputSettings": {
+                  "HlsSettings": {
+                    "AudioGroupId": "program_audio",
+                    "SegmentModifier": "_1080p"
+                  }
+                },
+                "VideoDescription": {
+                  "CodecSettings": {
+                    "Codec": "H_264",
+                    "H264Settings": {
+                      "GopSize": 2,
+                      "MaxBitrate": 5000000,
+                      "QvbrSettings": {
+                        "QvbrQualityLevel": 8
+                      },
+                      "RateControlMode": "QVBR",
+                      "SceneChangeDetect": "ENABLED"
+                    }
+                  },
+                  "Height": 1080,
+                  "Width": 1920
+                }
+              },
+              {
+                "AudioDescriptions": [
+                  {
+                    "AudioSourceName": "Audio Selector 1",
+                    "CodecSettings": {
+                      "AacSettings": {
+                        "Bitrate": 128000,
+                        "CodingMode": "CODING_MODE_2_0",
+                        "SampleRate": 48000
+                      },
+                      "Codec": "AAC"
+                    }
+                  }
+                ],
+                "ContainerSettings": {
+                  "Container": "M3U8"
+                },
+                "NameModifier": "_720p",
+                "OutputSettings": {
+                  "HlsSettings": {
+                    "AudioGroupId": "program_audio",
+                    "SegmentModifier": "_720p"
+                  }
+                },
+                "VideoDescription": {
+                  "CodecSettings": {
+                    "Codec": "H_264",
+                    "H264Settings": {
+                      "GopSize": 2,
+                      "MaxBitrate": 3000000,
+                      "QvbrSettings": {
+                        "QvbrQualityLevel": 7
+                      },
+                      "RateControlMode": "QVBR"
+                    }
+                  },
+                  "Height": 720,
+                  "Width": 1280
+                }
+              },
+              {
+                "AudioDescriptions": [
+                  {
+                    "AudioSourceName": "Audio Selector 1",
+                    "CodecSettings": {
+                      "AacSettings": {
+                        "Bitrate": 96000,
+                        "CodingMode": "CODING_MODE_2_0",
+                        "SampleRate": 48000
+                      },
+                      "Codec": "AAC"
+                    }
+                  }
+                ],
+                "ContainerSettings": {
+                  "Container": "M3U8"
+                },
+                "NameModifier": "_480p",
+                "OutputSettings": {
+                  "HlsSettings": {
+                    "AudioGroupId": "program_audio",
+                    "SegmentModifier": "_480p"
+                  }
+                },
+                "VideoDescription": {
+                  "CodecSettings": {
+                    "Codec": "H_264",
+                    "H264Settings": {
+                      "GopSize": 2,
+                      "MaxBitrate": 1000000,
+                      "QvbrSettings": {
+                        "QvbrQualityLevel": 6
+                      },
+                      "RateControlMode": "QVBR"
+                    }
+                  },
+                  "Height": 480,
+                  "Width": 854
+                }
+              },
+              {
+                "CaptionDescriptions": [
+                  {
+                    "CaptionSelectorName": "EN",
+                    "DestinationSettings": {
+                      "DestinationType": "WEBVTT"
+                    },
+                    "LanguageCode": "ENG",
+                    "LanguageDescription": "English"
+                  }
+                ],
+                "ContainerSettings": {
+                  "Container": "M3U8"
+                },
+                "NameModifier": "_vtt_en"
+              }
+            ]
+          }
+        ]
+      },
+      "ShareStatus": "NOT_SHARED",
+      "Status": "COMPLETE",
+      "StatusUpdateInterval": "SECONDS_60",
+      "Timing": {
+        "FinishTime": "2026-04-07T22:44:56Z",
+        "StartTime": "2026-04-07T22:44:15Z",
+        "SubmitTime": "2026-04-07T22:44:14Z"
+      },
+      "UserMetadata": {
+        "Type": "Show",
+        "Environment": "dev",
+        "Season": "Season_5",
+        "Episode": "Episode_3",
+        "Episode Name": "Llamigos",
+        "Title": "Caminandes",
+        "MasterFileURL": "https://djw9advhhoy8d.cloudfront.net/Shows/Caminandes/Season_5/Episode_3_Llamigos/output/hls/index.m3u8"
+      },
+      "Warnings": [
+        {
+          "Code": 230001,
+          "Count": 1
+        },
+        {
+          "Code": 230005,
+          "Count": 1
+        }
+      ]
+    }
+  }
+}
