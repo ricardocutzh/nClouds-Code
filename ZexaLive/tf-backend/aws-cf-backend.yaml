@@ -1,0 +1,58 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Creates an S3 bucket and DynamoDB table for a Terraform remote state backend.'
+
+Parameters:
+  Identifier:
+    Type: String
+    Description: 'Identifier for the project or team (e.g., core-infra, data-platform)'
+  Environment:
+    Type: String
+    Description: 'Deployment environment (e.g., dev, stg, prod)'
+    Default: dev
+
+Resources:
+
+  TerraformStateBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'zexalive-${AWS::AccountId}-${AWS::Region}-${Identifier}-${Environment}-tf-backend'
+      
+      VersioningConfiguration:
+        Status: Enabled
+
+      LifecycleConfiguration:
+        Rules:
+          - Id: RetainLastStateVersions
+            Status: Enabled
+            NoncurrentVersionExpiration:
+              NewerNoncurrentVersions: 20 # Keep the last 20 state versions
+              NoncurrentDays: 1
+              
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  TerraformStateLockTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub 'zexalive-${AWS::AccountId}-${AWS::Region}-${Identifier}-${Environment}-tf-backend'
+      
+      AttributeDefinitions:
+        - AttributeName: LockID
+          AttributeType: S
+      KeySchema:
+        - AttributeName: LockID
+          KeyType: HASH
+          
+      BillingMode: PAY_PER_REQUEST
+
+Outputs:
+  StateBucketName:
+    Description: 'The name of the S3 bucket to configure in the Terraform backend block'
+    Value: !Ref TerraformStateBucket
+
+  LockTableName:
+    Description: 'The name of the DynamoDB table to configure in the Terraform backend block'
+    Value: !Ref TerraformStateLockTable
