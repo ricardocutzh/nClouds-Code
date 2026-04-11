@@ -1,0 +1,5 @@
+{
+    "Identifier": "vod-monitoring",
+    "Environment": "dev",
+    "SlackWebHookUrl": "dev/nclouds-vod-pipeline/monitoring/slack-webhook"
+}

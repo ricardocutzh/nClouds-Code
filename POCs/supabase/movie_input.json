@@ -1,0 +1,505 @@
+{
+  "Queue": "arn:aws:mediaconvert:us-east-1:412393146416:queues/abfilms-vod-pipeline-dev-movie-queue",
+  "Role": "arn:aws:iam::412393146416:role/abfilms-us-east-1-vod-pipeline-dev-mediaconvert-role",
+  "UserMetadata": {
+    "Type": "Movie",
+    "Environment": "dev",
+    "Title": "For_Bigger_Blazes",
+    "MasterFileURL": "https://djw9advhhoy8d.cloudfront.net/Movies/For_Bigger_Blazes/output/hls/index.m3u8"
+  },
+  "Settings": {
+    "OutputGroups": [
+      {
+        "Name": "HLS Group",
+        "Outputs": [
+          {
+            "ContainerSettings": {
+              "Container": "M3U8"
+            },
+            "VideoDescription": {
+              "Width": 1920,
+              "Height": 1080,
+              "CodecSettings": {
+                "Codec": "H_264",
+                "H264Settings": {
+                  "GopSize": 2,
+                  "MaxBitrate": 5000000,
+                  "RateControlMode": "QVBR",
+                  "QvbrSettings": {
+                    "QvbrQualityLevel": 8
+                  },
+                  "SceneChangeDetect": "ENABLED"
+                }
+              }
+            },
+            "AudioDescriptions": [
+              {
+                "AudioSourceName": "Audio Selector 1",
+                "CodecSettings": {
+                  "Codec": "AAC",
+                  "AacSettings": {
+                    "Bitrate": 160000,
+                    "RateControlMode": "CBR",
+                    "CodecProfile": "LC",
+                    "CodingMode": "CODING_MODE_2_0",
+                    "SampleRate": 48000
+                  }
+                }
+              }
+            ],
+            "OutputSettings": {
+              "HlsSettings": {
+                "AudioGroupId": "program_audio",
+                "SegmentModifier": "_1080p"
+              }
+            },
+            "NameModifier": "_1080p"
+          },
+          {
+            "ContainerSettings": {
+              "Container": "M3U8"
+            },
+            "VideoDescription": {
+              "Width": 1280,
+              "Height": 720,
+              "CodecSettings": {
+                "Codec": "H_264",
+                "H264Settings": {
+                  "GopSize": 2,
+                  "MaxBitrate": 3000000,
+                  "RateControlMode": "QVBR",
+                  "QvbrSettings": {
+                    "QvbrQualityLevel": 7
+                  }
+                }
+              }
+            },
+            "AudioDescriptions": [
+              {
+                "AudioSourceName": "Audio Selector 1",
+                "CodecSettings": {
+                  "Codec": "AAC",
+                  "AacSettings": {
+                    "Bitrate": 128000,
+                    "CodingMode": "CODING_MODE_2_0",
+                    "SampleRate": 48000
+                  }
+                }
+              }
+            ],
+            "OutputSettings": {
+              "HlsSettings": {
+                "AudioGroupId": "program_audio",
+                "SegmentModifier": "_720p"
+              }
+            },
+            "NameModifier": "_720p"
+          },
+          {
+            "ContainerSettings": {
+              "Container": "M3U8"
+            },
+            "VideoDescription": {
+              "Width": 854,
+              "Height": 480,
+              "CodecSettings": {
+                "Codec": "H_264",
+                "H264Settings": {
+                  "GopSize": 2,
+                  "MaxBitrate": 1000000,
+                  "RateControlMode": "QVBR",
+                  "QvbrSettings": {
+                    "QvbrQualityLevel": 6
+                  }
+                }
+              }
+            },
+            "AudioDescriptions": [
+              {
+                "AudioSourceName": "Audio Selector 1",
+                "CodecSettings": {
+                  "Codec": "AAC",
+                  "AacSettings": {
+                    "Bitrate": 96000,
+                    "CodingMode": "CODING_MODE_2_0",
+                    "SampleRate": 48000
+                  }
+                }
+              }
+            ],
+            "OutputSettings": {
+              "HlsSettings": {
+                "AudioGroupId": "program_audio",
+                "SegmentModifier": "_480p"
+              }
+            },
+            "NameModifier": "_480p"
+          },
+          {
+            "NameModifier": "_vtt_en",
+            "ContainerSettings": {
+              "Container": "M3U8"
+            },
+            "CaptionDescriptions": [
+              {
+                "CaptionSelectorName": "EN",
+                "DestinationSettings": {
+                  "DestinationType": "WEBVTT"
+                },
+                "LanguageCode": "ENG",
+                "LanguageDescription": "English"
+              }
+            ]
+          }
+        ],
+        "OutputGroupSettings": {
+          "Type": "HLS_GROUP_SETTINGS",
+          "HlsGroupSettings": {
+            "SegmentLength": 6,
+            "Destination": "s3://abfilms-us-east-1-412393146416-output/Movies/For_Bigger_Blazes/output/hls/index",
+            "MinSegmentLength": 0
+          }
+        }
+      }
+    ],
+    "Inputs": [
+      {
+        "AudioSelectors": {
+          "Audio Selector 1": {
+            "Tracks": [
+              1
+            ],
+            "DefaultSelection": "NOT_DEFAULT",
+            "SelectorType": "TRACK"
+          }
+        },
+        "CaptionSelectors": {
+          "EN": {
+            "SourceSettings": {
+              "SourceType": "SRT",
+              "FileSourceSettings": {
+                "SourceFile": "s3://abfilms-us-east-1-412393146416-nclouds-ingest/9999-0004_blazes/test_blazes.srt"
+              }
+            }
+          }
+        },
+        "FileInput": "s3://abfilms-us-east-1-412393146416-nclouds-ingest/9999-0004_blazes/ForBiggerBlazes.mp4"
+      }
+    ]
+  },
+  "Original_CSV_Data": {
+    "Template Description": "Filmhub CSV Metadata 3.0 - Filmhub Movies & Shows",
+    "Program Type": "Movie",
+    "Template Version": "3.0",
+    "Movie/Show Filmhub SKU": "9999-0004",
+    "Movie/Show Title": "For Bigger Blazes",
+    "Movie/Show Synopsis": "A short clip featuring fire and elemental effects, often used for testing high-bitrate video encoding.",
+    "Movie/Show Sales Pitch": "Extreme contrast and motion testing for VOD pipelines.",
+    "Genre": "Special Effects/Nature",
+    "Festivals": "Blender Open Projects",
+    "Cast": "Blender Community",
+    "Director(s)": "Blender Staff",
+    "Writer(s)": "Blender Staff",
+    "Producer(s)": "Ton Roosendaal",
+    "Movie Running Time": "1",
+    "Production Year": "2015",
+    "Country of Origin": "Netherlands",
+    "Original Spoken Language": "No Dialogue",
+    "Production Company": "Blender Foundation",
+    "Copyright": "2015 Blender Foundation",
+    "Studio": "Filmhub",
+    "IMDb ID": "",
+    "IMDb Link": "",
+    "Rating System": "US-TV",
+    "Rating": "TV-G",
+    "Voluntary Rating(s)": "General",
+    "Tag(s)": "Fire, Effects, Test, Blender",
+    "Movie Chapters/Ad Breaks": "00:00:05:00",
+    "Avail Type(s)": "avod",
+    "Avail Start": "2024-01-01",
+    "Avail End": "open",
+    "Avail Countries Included": "US, CA",
+    "Avail Countries Excluded": "",
+    "Movie Filename": "ForBiggerBlazes.mp4",
+    "Movie Audio Type": "Stereo",
+    "Trailer": "No",
+    "Trailer Audio Type": "",
+    "Trailer Filename": "",
+    "Movie Subtitles/Captions Languages": "en",
+    "Movie Subtitles/Captions Types": "subtitles",
+    "Movie Subtitles/Captions Filenames": "test_blazes.srt",
+    "Key Art 2:3 Filename": "9999-0004_blazes_2x3.jpg",
+    "Key Art 3:4 Filename": "9999-0004_blazes_3x4.jpg",
+    "Key Art 16:9 Filename": "9999-0004_blazes_16x9.jpg",
+    "Textless Hero 16:9 Filename": "",
+    "Other Key Art Filenames": "",
+    "Other Images Filenames": "",
+    "Episode SKU": "",
+    "Episode Name": "",
+    "Season Number": "",
+    "Episode Number": "",
+    "Episode Synopsis": "",
+    "Episode Language": "",
+    "Episode Chapters/Ad Breaks": "",
+    "Episode Running Time": "",
+    "Episode Filename": "",
+    "Episode Subtitles/Captions Filenames": "",
+    "Episode Subtitles/Captions Languages": "",
+    "Episode Subtitles/Captions Type": "",
+    "Episode Season Name": ""
+  },
+  "JobResult": {
+    "Job": {
+      "AccelerationSettings": {
+        "Mode": "DISABLED"
+      },
+      "AccelerationStatus": "NOT_APPLICABLE",
+      "Arn": "arn:aws:mediaconvert:us-east-1:412393146416:jobs/1775690583761-o2tphd",
+      "BillingTagsSource": "JOB",
+      "ClientRequestToken": "7f873fa0-e9d2-44ae-a9b8-961d3adb0927",
+      "CreatedAt": "2026-04-08T23:23:04Z",
+      "Id": "1775690583761-o2tphd",
+      "Messages": {
+        "Info": [],
+        "Warning": []
+      },
+      "OutputGroupDetails": [
+        {
+          "OutputDetails": [
+            {
+              "DurationInMs": 15015,
+              "VideoDetails": {
+                "HeightInPx": 1080,
+                "WidthInPx": 1920
+              }
+            },
+            {
+              "DurationInMs": 15015,
+              "VideoDetails": {
+                "HeightInPx": 720,
+                "WidthInPx": 1280
+              }
+            },
+            {
+              "DurationInMs": 15015,
+              "VideoDetails": {
+                "HeightInPx": 480,
+                "WidthInPx": 854
+              }
+            },
+            {
+              "DurationInMs": 0
+            }
+          ]
+        }
+      ],
+      "Priority": 0,
+      "Queue": "arn:aws:mediaconvert:us-east-1:412393146416:queues/abfilms-vod-pipeline-dev-movie-queue",
+      "Role": "arn:aws:iam::412393146416:role/abfilms-us-east-1-vod-pipeline-dev-mediaconvert-role",
+      "Settings": {
+        "Inputs": [
+          {
+            "AudioSelectors": {
+              "Audio Selector 1": {
+                "DefaultSelection": "NOT_DEFAULT",
+                "SelectorType": "TRACK",
+                "Tracks": [
+                  1
+                ]
+              }
+            },
+            "CaptionSelectors": {
+              "EN": {
+                "SourceSettings": {
+                  "FileSourceSettings": {
+                    "SourceFile": "s3://abfilms-us-east-1-412393146416-nclouds-ingest/9999-0004_blazes/test_blazes.srt"
+                  },
+                  "SourceType": "SRT"
+                }
+              }
+            },
+            "FileInput": "s3://abfilms-us-east-1-412393146416-nclouds-ingest/9999-0004_blazes/ForBiggerBlazes.mp4"
+          }
+        ],
+        "OutputGroups": [
+          {
+            "Name": "HLS Group",
+            "OutputGroupSettings": {
+              "HlsGroupSettings": {
+                "Destination": "s3://abfilms-us-east-1-412393146416-output/Movies/For_Bigger_Blazes/output/hls/index",
+                "MinSegmentLength": 0,
+                "SegmentLength": 6
+              },
+              "Type": "HLS_GROUP_SETTINGS"
+            },
+            "Outputs": [
+              {
+                "AudioDescriptions": [
+                  {
+                    "AudioSourceName": "Audio Selector 1",
+                    "CodecSettings": {
+                      "AacSettings": {
+                        "Bitrate": 160000,
+                        "CodecProfile": "LC",
+                        "CodingMode": "CODING_MODE_2_0",
+                        "RateControlMode": "CBR",
+                        "SampleRate": 48000
+                      },
+                      "Codec": "AAC"
+                    }
+                  }
+                ],
+                "ContainerSettings": {
+                  "Container": "M3U8"
+                },
+                "NameModifier": "_1080p",
+                "OutputSettings": {
+                  "HlsSettings": {
+                    "AudioGroupId": "program_audio",
+                    "SegmentModifier": "_1080p"
+                  }
+                },
+                "VideoDescription": {
+                  "CodecSettings": {
+                    "Codec": "H_264",
+                    "H264Settings": {
+                      "GopSize": 2,
+                      "MaxBitrate": 5000000,
+                      "QvbrSettings": {
+                        "QvbrQualityLevel": 8
+                      },
+                      "RateControlMode": "QVBR",
+                      "SceneChangeDetect": "ENABLED"
+                    }
+                  },
+                  "Height": 1080,
+                  "Width": 1920
+                }
+              },
+              {
+                "AudioDescriptions": [
+                  {
+                    "AudioSourceName": "Audio Selector 1",
+                    "CodecSettings": {
+                      "AacSettings": {
+                        "Bitrate": 128000,
+                        "CodingMode": "CODING_MODE_2_0",
+                        "SampleRate": 48000
+                      },
+                      "Codec": "AAC"
+                    }
+                  }
+                ],
+                "ContainerSettings": {
+                  "Container": "M3U8"
+                },
+                "NameModifier": "_720p",
+                "OutputSettings": {
+                  "HlsSettings": {
+                    "AudioGroupId": "program_audio",
+                    "SegmentModifier": "_720p"
+                  }
+                },
+                "VideoDescription": {
+                  "CodecSettings": {
+                    "Codec": "H_264",
+                    "H264Settings": {
+                      "GopSize": 2,
+                      "MaxBitrate": 3000000,
+                      "QvbrSettings": {
+                        "QvbrQualityLevel": 7
+                      },
+                      "RateControlMode": "QVBR"
+                    }
+                  },
+                  "Height": 720,
+                  "Width": 1280
+                }
+              },
+              {
+                "AudioDescriptions": [
+                  {
+                    "AudioSourceName": "Audio Selector 1",
+                    "CodecSettings": {
+                      "AacSettings": {
+                        "Bitrate": 96000,
+                        "CodingMode": "CODING_MODE_2_0",
+                        "SampleRate": 48000
+                      },
+                      "Codec": "AAC"
+                    }
+                  }
+                ],
+                "ContainerSettings": {
+                  "Container": "M3U8"
+                },
+                "NameModifier": "_480p",
+                "OutputSettings": {
+                  "HlsSettings": {
+                    "AudioGroupId": "program_audio",
+                    "SegmentModifier": "_480p"
+                  }
+                },
+                "VideoDescription": {
+                  "CodecSettings": {
+                    "Codec": "H_264",
+                    "H264Settings": {
+                      "GopSize": 2,
+                      "MaxBitrate": 1000000,
+                      "QvbrSettings": {
+                        "QvbrQualityLevel": 6
+                      },
+                      "RateControlMode": "QVBR"
+                    }
+                  },
+                  "Height": 480,
+                  "Width": 854
+                }
+              },
+              {
+                "CaptionDescriptions": [
+                  {
+                    "CaptionSelectorName": "EN",
+                    "DestinationSettings": {
+                      "DestinationType": "WEBVTT"
+                    },
+                    "LanguageCode": "ENG",
+                    "LanguageDescription": "English"
+                  }
+                ],
+                "ContainerSettings": {
+                  "Container": "M3U8"
+                },
+                "NameModifier": "_vtt_en"
+              }
+            ]
+          }
+        ]
+      },
+      "ShareStatus": "NOT_SHARED",
+      "Status": "COMPLETE",
+      "StatusUpdateInterval": "SECONDS_60",
+      "Timing": {
+        "FinishTime": "2026-04-08T23:23:12Z",
+        "StartTime": "2026-04-08T23:23:04Z",
+        "SubmitTime": "2026-04-08T23:23:04Z"
+      },
+      "UserMetadata": {
+        "Type": "Movie",
+        "Environment": "dev",
+        "Title": "For_Bigger_Blazes",
+        "MasterFileURL": "https://djw9advhhoy8d.cloudfront.net/Movies/For_Bigger_Blazes/output/hls/index.m3u8"
+      },
+      "Warnings": [
+        {
+          "Code": 230001,
+          "Count": 1
+        },
+        {
+          "Code": 230005,
+          "Count": 1
+        }
+      ]
+    }
+  }
+}

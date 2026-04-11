@@ -106,6 +106,9 @@ Resources:
             Type: Task
             Resource: !GetAtt JobBuilder.Arn
             Next: CreateMediaConvertJobMovies
+            Catch:
+              - ErrorEquals: ["States.ALL"]
+                Next: JobBuilderFailed
             #End: true
           
           CreateMediaConvertJobMovies:
@@ -117,7 +120,20 @@ Resources:
               "Settings.$": "$.Settings"
               "UserMetadata.$": "$.UserMetadata"
             "ResultPath": "$.JobResult"
+            Catch:
+              - ErrorEquals: ["States.ALL"]
+                Next: MediaConvertJobFailed
             End: true
+
+          JobBuilderFailed:
+            Type: Fail
+            ErrorPath: "$.Error"
+            CausePath: "$.Cause"
+
+          MediaConvertJobFailed:
+            Type: Fail
+            ErrorPath: "$.Error"
+            CausePath: "$.Cause"
 
       Logging:
         Destinations:
@@ -153,6 +169,10 @@ Resources:
             Type: Task
             Resource: !GetAtt JobBuilder.Arn
             Next: CreateMediaConvertJobShows
+            Catch:
+              - ErrorEquals: ["States.ALL"]
+                Next: JobBuilderFailed
+                #ResultPath: "$.ErrorDetails"
             #End: true
           
           CreateMediaConvertJobShows:
@@ -164,7 +184,20 @@ Resources:
               "UserMetadata.$": "$.UserMetadata"
               "Settings.$": "$.Settings"
             "ResultPath": "$.JobResult"
+            Catch:
+              - ErrorEquals: ["States.ALL"]
+                Next: MediaConvertJobFailed
             End: true
+
+          JobBuilderFailed:
+            Type: Fail
+            ErrorPath: "$.Error"
+            CausePath: "$.Cause"
+
+          MediaConvertJobFailed:
+            Type: Fail
+            ErrorPath: "$.Error"
+            CausePath: "$.Cause"
 
       Logging:
         Destinations:

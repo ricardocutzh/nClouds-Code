@@ -48,8 +48,8 @@ def csv_to_json_object(file_path: str):
         return data_list
 
     except Exception as e:
-        logger.error(f">> Failed to process CSV: {e}")
-        raise
+        logger.error(f">> Function: csv_to_json_object: {str(e)}")
+        raise Exception(f">> Function: csv_to_json_object: {str(e)}")
         
 def download_s3_to_local(bucket_name: str, s3_key: str, download_dir: str = "/tmp/") -> str:
     """
@@ -70,12 +70,9 @@ def download_s3_to_local(bucket_name: str, s3_key: str, download_dir: str = "/tm
         # 3. Return the absolute path as a string
         return str(local_file_path.absolute())
 
-    except ClientError as e:
-        print(f"AWS Error: {e}")
-        raise
     except Exception as e:
-        print(f"An error occurred: {e}")
-        raise
+        logger.error(f">> Function: download_s3_to_local: {str(e)}")
+        raise Exception(f">> Function: download_s3_to_local: {str(e)}")
 
 
 def cleanup_subtitles(subtitle_data, episode_string):
@@ -106,6 +103,8 @@ def lambda_handler(event, context):
         logger.info(f">> File downloaded here: {saved_path}")
 
         metadata_json = csv_to_json_object(saved_path)
+
+        logger.info(json.dumps(metadata_json))
 
         for d in metadata_json:
 
@@ -195,11 +194,12 @@ def lambda_handler(event, context):
             
         return True
         
-    except KeyError as e:
-        logger.error(f">> Error parsing event: Missing key {str(e)}")
+    except Exception as e:
+        logger.error(f">> Function: lambda_handler: {str(e)}")
+        raise Exception(f">> Function: lambda_handler: {str(e)}")
         return {
-            "statusCode": 400,
-            "body": "Invalid event format"
+            "statusCode": 500,
+            "body": f"{str(e)}"
         }
 
     return {

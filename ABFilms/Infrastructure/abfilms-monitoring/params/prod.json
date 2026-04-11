@@ -1,0 +1,5 @@
+{
+    "Identifier": "vod-monitoring",
+    "Environment": "prod",
+    "SlackWebHookUrl": "prod/abfilms-vod-pipeline/monitoring/slack-webhook"
+}
