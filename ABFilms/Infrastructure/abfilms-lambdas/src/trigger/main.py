@@ -104,6 +104,8 @@ def lambda_handler(event, context):
 
         metadata_json = csv_to_json_object(saved_path)
 
+        logger.info(json.dumps(metadata_json))
+
         for d in metadata_json:
 
             queue = None

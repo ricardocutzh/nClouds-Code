@@ -8,6 +8,9 @@ Parameters:
   Environment:
     Type: String
 
+  SlackWebHookUrl:
+    Type: String
+
 Conditions:
   IsProd: !Equals [!Ref Environment, "prod"]
 
@@ -25,14 +28,12 @@ Resources:
       FunctionName: !Sub "abfilms-${Identifier}-${Environment}-observer"
       LoggingConfig:
         LogGroup: !Ref ObserverLogGroup
-      InlineCode: |
-        import json
-        def lambda_handler(event, context):
-            detail = event.get('detail', {})
-            print(f"Workflow {detail.get('stateMachineArn')} is now {detail.get('status')}")
-            return {"statusCode": 200}
-      Handler: index.lambda_handler
+      CodeUri: src/sfn-observer
+      Handler: main.lambda_handler
       Runtime: python3.13
+      Environment:
+        Variables:
+          SLACK_WEBHOOK_URL: !Ref SlackWebHookUrl
       Policies:
         - CloudWatchPutMetricPolicy: {}
 

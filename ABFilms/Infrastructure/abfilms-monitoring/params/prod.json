@@ -1,5 +1,5 @@
 {
     "Identifier": "vod-monitoring",
-    "Environment": "dev",
+    "Environment": "prod",
     "SlackWebHookUrl": "https://hooks.slack.com/services/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"
 }

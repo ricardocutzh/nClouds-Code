@@ -68,6 +68,7 @@ def map_to_mediaconvert_lang(input_code):
         "HY":     {"LanguageCode": "HYE", "LanguageDescription": "Armenian"},
         "EN":     {"LanguageCode": "ENG", "LanguageDescription": "English"},
         "EN-US":  {"LanguageCode": "ENG", "LanguageDescription": "English"},
+        "PT-BR":  {"LanguageCode": "POR", "LanguageDescription": "Portuguese"},
     }
     
     if raw_code in overrides:
