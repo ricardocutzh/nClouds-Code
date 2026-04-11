@@ -33,7 +33,7 @@ Resources:
       Runtime: python3.13
       Environment:
         Variables:
-          SLACK_WEBHOOK_URL: !Ref SlackWebHookUrl
+          SLACK_WEBHOOK_URL: !Sub "{{resolve:secretsmanager:${SlackWebHookUrl}:SecretString::AWSCURRENT}}"
       Policies:
         - CloudWatchPutMetricPolicy: {}
 
