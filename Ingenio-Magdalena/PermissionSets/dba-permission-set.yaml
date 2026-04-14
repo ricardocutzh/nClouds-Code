@@ -29,8 +29,20 @@ Resources:
 
           - Effect: Allow
             Action:
-              - "secretsmanager:ListSecrets"
+              - "secretsmanager:*"
             Resource: "*"
+
+          - Effect: Deny
+            Action:
+              - "secretsmanager:DeleteSecret"
+              - "secretsmanager:PutSecretValue"
+              - "secretsmanager:UpdateSecret"
+              - "secretsmanager:RestoreSecret"
+              - "secretsmanager:RotateSecret"
+            Resource: "*"
+            Condition:
+              StringEquals:
+                "aws:ResourceTag/Protected": "True"
 
 Outputs:
   PermissionSetArn:
