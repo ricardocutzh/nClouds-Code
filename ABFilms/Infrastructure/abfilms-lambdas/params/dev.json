@@ -10,5 +10,7 @@
     "ShowMediaConvertQueue": "arn:aws:mediaconvert:us-east-1:412393146416:queues/abfilms-vod-pipeline-dev-show-queue",
     "CloudfrontEndpoint": "djw9advhhoy8d.cloudfront.net",
     "DRMTodayApiEndpoint": "NOT_SET",
-    "DRMTodaySystemIds": "NOT_SET"
+    "DRMTodaySystemIds": "NOT_SET",
+    "SupaBaseUrl": "dev/nclouds-vod-pipeline/supabase/url",
+    "SupaBaseServiceRole": "dev/nclouds-vod-pipeline/supabase/service_role_key"
 }

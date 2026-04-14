@@ -51,10 +51,43 @@ Parameters:
     Type: String
     Default: "NOT_SET"
 
+  SupaBaseUrl:
+    Type: String
+    Default: "NOT_SET"
+
+  SupaBaseServiceRole:
+    Type: String
+    Default: "NOT_SET"
+
 Conditions:
   IsDev: !Equals [!Ref Environment, "dev"]
 
 Resources:
+
+  ShowDataSaveLambdaLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "abfilms-${Identifier}-${Environment}-show-save-data/logs"
+      RetentionInDays: !If [IsDev, 7, 90]
+
+  ShowDataSaveLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "abfilms-${Identifier}-${Environment}-show-save-data"
+      CodeUri: src/show_data_save
+      Handler: main.lambda_handler
+      Runtime: python3.13
+      MemorySize: 128
+      Timeout: 120
+      Policies:
+        - CloudWatchPutMetricPolicy: {}
+      Environment:
+        Variables:
+          ENVIRONMENT: !Ref Environment
+          SUPABASE_URL: !Sub "{{resolve:secretsmanager:${SupaBaseUrl}:SecretString::AWSCURRENT}}"
+          SERVICE_ROLE_KEY: !Sub "{{resolve:secretsmanager:${SupaBaseServiceRole}:SecretString::AWSCURRENT}}"
+      LoggingConfig:
+        LogGroup: !Ref ShowDataSaveLambdaLogs
 
   JobBuilderLogs:
     Type: AWS::Logs::LogGroup
