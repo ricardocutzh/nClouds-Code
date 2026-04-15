@@ -7,15 +7,17 @@ resource "aws_s3_bucket" "hls" {
   })
 }
 
-# resource "aws_s3_bucket_ownership_controls" "hls" {
-#   bucket = aws_s3_bucket.hls.id
+resource "aws_s3_bucket_ownership_controls" "hls" {
+  bucket = aws_s3_bucket.hls.id
 
-#   rule {
-#     object_ownership = "BucketOwnerEnforced"
-#   }
-# }
+  rule {
+    object_ownership = "BucketOwnerEnforced"
+  }
+}
 
 resource "aws_s3_bucket_public_access_block" "hls" {
+
+  depends_on = [aws_s3_bucket_ownership_controls.hls] 
 
   bucket = aws_s3_bucket.hls.id
 
