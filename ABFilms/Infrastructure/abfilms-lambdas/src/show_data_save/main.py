@@ -169,7 +169,7 @@ def save_video(data):
         "featured": True, # need to ask the value for this
         "release_year": int(data["Original_CSV_Data"]["Production Year"]),
         "rating":  f"{data["Original_CSV_Data"]["Rating"]}",
-        "cast_members": str(data["Original_CSV_Data"]["Cast"]).split(","),
+        "cast_members": str(data["Original_CSV_Data"]["Cast"]).split(", "),
         "director": str(data["Original_CSV_Data"]["Director(s)"]),
         "trailer_url": f"{str(SHOWS_PUBLIC_CLOUDFRONT_URL)}/s3_key/img.mp4",
         "subscription_required": "premium",
