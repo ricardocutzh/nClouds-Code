@@ -204,7 +204,7 @@ Resources:
             Next: CreateMediaConvertJobShows
             Catch:
               - ErrorEquals: ["States.ALL"]
-                Next: JobBuilderFailed
+                Next: GeneralFailed
                 #ResultPath: "$.ErrorDetails"
             #End: true
           
@@ -220,9 +220,17 @@ Resources:
             Catch:
               - ErrorEquals: ["States.ALL"]
                 Next: MediaConvertJobFailed
-            End: true
+            Next: ShowDataSave
 
-          JobBuilderFailed:
+          ShowDataSave:
+            Type: Task
+            Resource: !GetAtt ShowDataSaveLambda.Arn
+            End: True
+            Catch:
+              - ErrorEquals: ["States.ALL"]
+                Next: GeneralFailed
+
+          GeneralFailed:
             Type: Fail
             ErrorPath: "$.Error"
             CausePath: "$.Cause"
@@ -242,6 +250,8 @@ Resources:
         - CloudWatchLogsFullAccess
         - LambdaInvokePolicy:
             FunctionName: !Ref JobBuilder
+        - LambdaInvokePolicy:
+            FunctionName: !Ref ShowDataSaveLambda
         - AWSElementalMediaConvertFullAccess
         - Statement:
           - Effect: Allow
