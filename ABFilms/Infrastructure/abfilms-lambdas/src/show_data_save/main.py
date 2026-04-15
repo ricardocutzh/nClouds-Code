@@ -12,6 +12,7 @@ SERVICE_ROLE_KEY=os.environ.get("SERVICE_ROLE_KEY")
 SHOWS_PUBLIC_CLOUDFRONT_URL=os.environ.get("SHOWS_PUBLIC_CLOUDFRONT_URL")
 DRM_ENABLED=os.environ.get("DRM_ENABLED")
 DRM_LICENCE_URL=os.environ.get("DRM_LICENCE_URL")
+ALLOW_SUPABASE_WRITE=os.environ.get("ALLOW_SUPABASE_WRITE")
 headers = {
     "apikey": SERVICE_ROLE_KEY,
     "Authorization": f"Bearer {SERVICE_ROLE_KEY}",
@@ -398,21 +399,23 @@ def lambda_handler(event, context):
     logger.info(json.dumps(event))
 
     try:
-        video_id = get_video(event, event["Original_CSV_Data"]["Movie/Show Title"], event["Original_CSV_Data"]["Episode Number"], event["Original_CSV_Data"]["Episode Name"])
-        logger.info(f"-- video_id: {video_id}")
-        series_id = get_series(event, event["Original_CSV_Data"]["Movie/Show Title"])
-        logger.info(f"-- series_id: {series_id}")
-        episode_id = get_series_episode(event, series_id, video_id)
-        logger.info(f"-- episode_id: {episode_id} with video_id {video_id} and series_id {series_id}")
+        if ALLOW_SUPABASE_WRITE == "True":
+            video_id = get_video(event, event["Original_CSV_Data"]["Movie/Show Title"], event["Original_CSV_Data"]["Episode Number"], event["Original_CSV_Data"]["Episode Name"])
+            logger.info(f"-- video_id: {video_id}")
+            series_id = get_series(event, event["Original_CSV_Data"]["Movie/Show Title"])
+            logger.info(f"-- series_id: {series_id}")
+            episode_id = get_series_episode(event, series_id, video_id)
+            logger.info(f"-- episode_id: {episode_id} with video_id {video_id} and series_id {series_id}")
 
-        logger.info("-- Updating information required...")
+            logger.info("-- Updating information required...")
 
-        logger.info(json.dumps(update_episodes(event, series_id, video_id)))
-        logger.info(json.dumps(update_videos(event, video_id)))
-        logger.info(json.dumps(update_series(event, series_id)))
+            logger.info(json.dumps(update_episodes(event, series_id, video_id)))
+            logger.info(json.dumps(update_videos(event, video_id)))
+            logger.info(json.dumps(update_series(event, series_id)))
 
-        logger.info("-- Finish All Updates")
-        
+            logger.info("-- Finish All Updates")
+        else:
+            logger.info(f"-- Supabase Updates Ignored because of flag: {ALLOW_SUPABASE_WRITE}")
         return event
 
     except Exception as e:

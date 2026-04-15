@@ -1,0 +1,115 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: S3 and CloudFront Template for Static Content (Images/Videos)
+
+Parameters:
+  S3BucketSuffix:
+    Description: Suffix for the S3 bucket name
+    Type: String 
+
+Resources:
+
+  FilmHubStaticContentBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Sub "abfilms-${AWS::Region}-${AWS::AccountId}-${S3BucketSuffix}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ['*']
+            AllowedMethods: [GET]
+            AllowedOrigins: ['*'] 
+            ExposedHeaders: [ETag]
+            MaxAge: 3000
+      Tags:
+        - Key: Name
+          Value: !Sub "abfilms-${AWS::Region}-${AWS::AccountId}-${S3BucketSuffix}"
+
+  # 2. Origin Access Control
+  CloudFrontOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Description: "OAC for Static Content"
+        Name: !Sub "abfilms-${AWS::Region}-${AWS::AccountId}-static-oac"
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  # 3. Cache Policy
+  StaticCachePolicy:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Name: !Sub "${AWS::StackName}-Static-Cache-Policy"
+        DefaultTTL: 86400
+        MaxTTL: 31536000
+        MinTTL: 1
+        ParametersInCacheKeyAndForwardedToOrigin:
+          CookiesConfig:
+            CookieBehavior: none
+          EnableAcceptEncodingGzip: true
+          EnableAcceptEncodingBrotli: true
+          HeadersConfig:
+            HeaderBehavior: whitelist
+            Headers:
+              - Origin
+          QueryStringsConfig:
+            QueryStringBehavior: none
+
+  # 4. CloudFront Distribution
+  AbfilmsStaticDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: "Public access to ABFILMS static assets"
+        Origins:
+          - Id: S3Origin
+            # Updated reference to the renamed bucket
+            DomainName: !GetAtt FilmHubStaticContentBucket.DomainName
+            OriginAccessControlId: !GetAtt CloudFrontOriginAccessControl.Id
+            S3OriginConfig:
+              OriginAccessIdentity: "" 
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD, OPTIONS]
+          CachedMethods: [GET, HEAD]
+          CachePolicyId: !Ref StaticCachePolicy
+          Compress: true
+
+  # 5. Bucket Policy
+  OutputBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      # Updated reference to the renamed bucket
+      Bucket: !Ref FilmHubStaticContentBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudFrontServicePrincipalReadOnly
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            # Updated reference in the ARN
+            Resource: !Sub "arn:aws:s3:::${FilmHubStaticContentBucket}/*"
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${AbfilmsStaticDistribution}"
+
+Outputs:
+  CloudFrontURL:
+    Description: The URL to access your content publicly
+    Value: !Sub "https://${AbfilmsStaticDistribution.DomainName}"
+
+  BucketName:
+    Value: !Ref FilmHubStaticContentBucket
+
+  BucketArn:
+    Value: !GetAtt FilmHubStaticContentBucket.Arn

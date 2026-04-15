@@ -71,6 +71,10 @@ Parameters:
     Type: String
     Default: "https://cdn.com/license"
 
+  AllowSupabaseWrites:
+    Type: String
+    Default: "False"
+
 Conditions:
   IsDev: !Equals [!Ref Environment, "dev"]
 
@@ -101,6 +105,7 @@ Resources:
           ENVIRONMENT: !Ref Environment
           SUPABASE_URL: !Sub "{{resolve:secretsmanager:${SupaBaseUrl}:SecretString::AWSCURRENT}}"
           SERVICE_ROLE_KEY: !Sub "{{resolve:secretsmanager:${SupaBaseServiceRole}:SecretString::AWSCURRENT}}"
+          ALLOW_SUPABASE_WRITE: !Ref AllowSupabaseWrites
       LoggingConfig:
         LogGroup: !Ref MoviesDataSaveLambdaLogs
 
@@ -126,6 +131,7 @@ Resources:
           ENVIRONMENT: !Ref Environment
           SUPABASE_URL: !Sub "{{resolve:secretsmanager:${SupaBaseUrl}:SecretString::AWSCURRENT}}"
           SERVICE_ROLE_KEY: !Sub "{{resolve:secretsmanager:${SupaBaseServiceRole}:SecretString::AWSCURRENT}}"
+          ALLOW_SUPABASE_WRITE: !Ref AllowSupabaseWrites
       LoggingConfig:
         LogGroup: !Ref ShowDataSaveLambdaLogs
 
