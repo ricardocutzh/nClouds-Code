@@ -71,6 +71,10 @@ Parameters:
     Type: String
     Default: "https://cdn.com/license"
 
+  S3CdnBucketName:
+    Type: String
+    Default: "Placeholder"
+
   AllowSupabaseWrites:
     Type: String
     Default: "False"
@@ -79,6 +83,38 @@ Conditions:
   IsDev: !Equals [!Ref Environment, "dev"]
 
 Resources:
+
+  SaveStaticLambdaLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "abfilms-${Identifier}-${Environment}-move-static-data/logs"
+      RetentionInDays: !If [IsDev, 7, 90]
+
+  SaveStaticLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "abfilms-${Identifier}-${Environment}-move-static-data"
+      CodeUri: src/cdn-move-data
+      Handler: main.lambda_handler
+      Runtime: python3.13
+      MemorySize: 256
+      Timeout: 300
+      Policies:
+        - CloudWatchLogsFullAccess
+        - Statement:
+          - Effect: Allow
+            Action:
+            - s3:*
+            Resource: 
+            - "*"
+      Environment:
+        Variables:
+          DRM_ENABLED: !Ref DrmEnabled
+          CDN_S3_BUCKET: !Ref S3CdnBucketName
+          INGEST_BUCKET: !Ref IngestS3BucketName
+          CLOUDFRONT_ENDPOINT: !Ref PublicAssetsCdn
+      LoggingConfig:
+        LogGroup: !Ref SaveStaticLambdaLogs
 
   MoviesDataSaveLambdaLogs:
     Type: AWS::Logs::LogGroup
@@ -202,7 +238,15 @@ Resources:
             Catch:
               - ErrorEquals: ["States.ALL"]
                 Next: MediaConvertJobFailed
+            Next: SaveStaticData
+
+          SaveStaticData:
+            Type: Task
+            Resource: !GetAtt SaveStaticLambda.Arn
             Next: MovieDataSave
+            Catch:
+              - ErrorEquals: ["States.ALL"]
+                Next: GeneralFailed
 
           MovieDataSave:
             Type: Task
@@ -234,6 +278,8 @@ Resources:
             FunctionName: !Ref JobBuilder
         - LambdaInvokePolicy:
             FunctionName: !Ref MoviesDataSaveLambda
+        - LambdaInvokePolicy:
+            FunctionName: !Ref SaveStaticLambda
         - AWSElementalMediaConvertFullAccess
         - Statement:
           - Effect: Allow
@@ -276,7 +322,15 @@ Resources:
             Catch:
               - ErrorEquals: ["States.ALL"]
                 Next: MediaConvertJobFailed
+            Next: SaveStaticData
+
+          SaveStaticData:
+            Type: Task
+            Resource: !GetAtt SaveStaticLambda.Arn
             Next: ShowDataSave
+            Catch:
+              - ErrorEquals: ["States.ALL"]
+                Next: GeneralFailed
 
           ShowDataSave:
             Type: Task
@@ -308,6 +362,8 @@ Resources:
             FunctionName: !Ref JobBuilder
         - LambdaInvokePolicy:
             FunctionName: !Ref ShowDataSaveLambda
+        - LambdaInvokePolicy:
+            FunctionName: !Ref SaveStaticLambda
         - AWSElementalMediaConvertFullAccess
         - Statement:
           - Effect: Allow

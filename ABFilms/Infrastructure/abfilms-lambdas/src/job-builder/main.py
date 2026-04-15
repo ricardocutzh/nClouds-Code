@@ -265,6 +265,8 @@ def lambda_handler(event, context):
 
         json_object["Original_CSV_Data"] = event["original_data"]
 
+        json_object["ParentS3Folder"] = event["parent_folder"]
+
         if drm_api_endpoint != "NOT_SET" and drm_system_ids != "NOT_SET":
             setup_drm_encryption(json_object, resource_id)
         return json_object
