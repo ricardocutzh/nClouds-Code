@@ -12,6 +12,7 @@ SERVICE_ROLE_KEY=os.environ.get("SERVICE_ROLE_KEY")
 SHOWS_PUBLIC_CLOUDFRONT_URL=os.environ.get("SHOWS_PUBLIC_CLOUDFRONT_URL")
 DRM_ENABLED=os.environ.get("DRM_ENABLED")
 DRM_LICENCE_URL=os.environ.get("DRM_LICENCE_URL")
+ALLOW_SUPABASE_WRITE=os.environ.get("ALLOW_SUPABASE_WRITE")
 headers = {
     "apikey": SERVICE_ROLE_KEY,
     "Authorization": f"Bearer {SERVICE_ROLE_KEY}",
@@ -25,12 +26,14 @@ def drm_enabled():
     return False
 
 def update_videos(data, video_id):
+    thumbnail = data["UserMetadata"]["PosterUrl"]
+    trailer_url = "" if str(data["Original_CSV_Data"]["Trailer"]) == "No" else str(data["UserMetadata"]["TrailerUrl"])
     video_data = {
         "title": f"{data["Original_CSV_Data"]["Movie/Show Title"]}",
         "description": f"{data["Original_CSV_Data"]["Movie/Show Synopsis"]}",
         "duration": int(data["Original_CSV_Data"]["Movie Running Time"]),
         "category": f"{data["Original_CSV_Data"]["Genre"]}",
-        "thumbnail": f"{str(SHOWS_PUBLIC_CLOUDFRONT_URL)}/s3_key/img.jpg",
+        "thumbnail": str(thumbnail),
         "video_url": f"{data["UserMetadata"]["MasterFileURL"]}",
         "drm_protected": drm_enabled(),
         "drm_license_url": str(DRM_LICENCE_URL),
@@ -39,7 +42,7 @@ def update_videos(data, video_id):
         "rating":  f"{data["Original_CSV_Data"]["Rating"]}",
         "cast_members": str(data["Original_CSV_Data"]["Cast"]).split(","),
         "director": str(data["Original_CSV_Data"]["Director(s)"]),
-        "trailer_url": f"{str(SHOWS_PUBLIC_CLOUDFRONT_URL)}/s3_key/img.mp4",
+        "trailer_url": str(trailer_url),
         "subscription_required": "premium",
         "is_premium": True,
         "quality": "HD",
@@ -65,13 +68,15 @@ def update_videos(data, video_id):
 def save_video(data):
     # save the video if episode does not exist in the video table
     # return video_id
+    thumbnail = data["UserMetadata"]["PosterUrl"]
+    trailer_url = "" if str(data["Original_CSV_Data"]["Trailer"]) == "No" else str(data["UserMetadata"]["TrailerUrl"])
     video_data = {
         "title": f"{data["Original_CSV_Data"]["Movie/Show Title"]}",
         "description": f"{data["Original_CSV_Data"]["Movie/Show Synopsis"]}",
         "duration": int(data["Original_CSV_Data"]["Movie Running Time"]),
         "category": f"{data["Original_CSV_Data"]["Genre"]}",
         "category": f"Test",
-        "thumbnail": f"{str(SHOWS_PUBLIC_CLOUDFRONT_URL)}/s3_key/img.jpg",
+        "thumbnail": str(thumbnail),
         "video_url": f"{data["UserMetadata"]["MasterFileURL"]}",
         "drm_protected": drm_enabled(),
         "drm_license_url": str(DRM_LICENCE_URL),
@@ -80,7 +85,7 @@ def save_video(data):
         "rating":  f"{data["Original_CSV_Data"]["Rating"]}",
         "cast_members": str(data["Original_CSV_Data"]["Cast"]).split(", "),
         "director": str(data["Original_CSV_Data"]["Director(s)"]),
-        "trailer_url": f"{str(SHOWS_PUBLIC_CLOUDFRONT_URL)}/s3_key/img.mp4",
+        "trailer_url": str(trailer_url),
         "subscription_required": "premium",
         "is_premium": True,
         "quality": "HD",
@@ -158,13 +163,15 @@ def lambda_handler(event, context):
     logger.info(json.dumps(event))
 
     try:
-        video_id = get_video(event, event["Original_CSV_Data"]["Movie/Show Title"])
-        logger.info(f"-- video_id: {video_id}")
+        if ALLOW_SUPABASE_WRITE == "True":
+            video_id = get_video(event, event["Original_CSV_Data"]["Movie/Show Title"])
+            logger.info(f"-- video_id: {video_id}")
 
-        logger.info(json.dumps(update_videos(event, video_id)))
+            logger.info(json.dumps(update_videos(event, video_id)))
 
-        logger.info("-- Finish All Updates")
-        
+            logger.info("-- Finish All Updates")
+        else:
+            logger.info(f"-- Supabase Updates Ignored because of flag: {ALLOW_SUPABASE_WRITE}")
         return event
 
     except Exception as e:

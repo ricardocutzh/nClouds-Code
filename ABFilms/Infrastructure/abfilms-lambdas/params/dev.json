@@ -12,5 +12,8 @@
     "DRMTodayApiEndpoint": "NOT_SET",
     "DRMTodaySystemIds": "NOT_SET",
     "SupaBaseUrl": "dev/nclouds-vod-pipeline/supabase/url",
-    "SupaBaseServiceRole": "dev/nclouds-vod-pipeline/supabase/service_role_key"
+    "SupaBaseServiceRole": "dev/nclouds-vod-pipeline/supabase/service_role_key",
+    "AllowSupabaseWrites": "False",
+    "PublicAssetsCdn": "https://drnfu7aztfk8r.cloudfront.net",
+    "S3CdnBucketName": "abfilms-us-east-1-412393146416-static"
 }

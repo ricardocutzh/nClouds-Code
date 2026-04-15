@@ -12,6 +12,7 @@ SERVICE_ROLE_KEY=os.environ.get("SERVICE_ROLE_KEY")
 SHOWS_PUBLIC_CLOUDFRONT_URL=os.environ.get("SHOWS_PUBLIC_CLOUDFRONT_URL")
 DRM_ENABLED=os.environ.get("DRM_ENABLED")
 DRM_LICENCE_URL=os.environ.get("DRM_LICENCE_URL")
+ALLOW_SUPABASE_WRITE=os.environ.get("ALLOW_SUPABASE_WRITE")
 headers = {
     "apikey": SERVICE_ROLE_KEY,
     "Authorization": f"Bearer {SERVICE_ROLE_KEY}",
@@ -157,12 +158,13 @@ def episode_exists(serie_id, video_id):
 def save_video(data):
     # save the video if episode does not exist in the video table
     # return video_id
+    thumbnail = data["UserMetadata"]["PosterUrl"]
     video_data = {
         "title": f"{data["Original_CSV_Data"]["Movie/Show Title"]} - Episode {data["Original_CSV_Data"]["Episode Number"]} - {data["Original_CSV_Data"]["Episode Name"]}",
         "description": f"{data["Original_CSV_Data"]["Episode Synopsis"]}",
         "duration": int(data["Original_CSV_Data"]["Episode Running Time"]),
         "category": f"{data["Original_CSV_Data"]["Genre"]}",
-        "thumbnail": f"{str(SHOWS_PUBLIC_CLOUDFRONT_URL)}/s3_key/img.jpg",
+        "thumbnail": str(thumbnail),
         "video_url": f"{data["UserMetadata"]["MasterFileURL"]}",
         "drm_protected": drm_enabled(),
         "drm_license_url": str(DRM_LICENCE_URL),
@@ -171,7 +173,7 @@ def save_video(data):
         "rating":  f"{data["Original_CSV_Data"]["Rating"]}",
         "cast_members": str(data["Original_CSV_Data"]["Cast"]).split(", "),
         "director": str(data["Original_CSV_Data"]["Director(s)"]),
-        "trailer_url": f"{str(SHOWS_PUBLIC_CLOUDFRONT_URL)}/s3_key/img.mp4",
+        #"trailer_url": f"{str(SHOWS_PUBLIC_CLOUDFRONT_URL)}/s3_key/img.mp4",
         "subscription_required": "premium",
         "is_premium": True,
         "quality": "HD",
@@ -198,12 +200,14 @@ def save_video(data):
 def save_series(data):
     # save the series and return id
     rating = "PG" if str(data["Original_CSV_Data"]["Rating"]) == "" else str(data["Original_CSV_Data"]["Rating"])
+    poster_url = data["UserMetadata"]["PosterUrl"]
+    trailer_url = "" if str(data["Original_CSV_Data"]["Trailer"]) == "No" else str(data["UserMetadata"]["TrailerUrl"])
     series_data = {
         "title": f"{data["Original_CSV_Data"]["Movie/Show Title"]}",
         "description": f"{data["Original_CSV_Data"]["Episode Synopsis"]}",
         "category": f"{data["Original_CSV_Data"]["Genre"]}",
-        "poster_url": f"{str(SHOWS_PUBLIC_CLOUDFRONT_URL)}/s3_key/img.jpg",
-        "trailer_url": f"{str(SHOWS_PUBLIC_CLOUDFRONT_URL)}/s3_key/img.mp4",
+        "poster_url": str(poster_url),
+        "trailer_url": str(trailer_url),
         "director": str(data["Original_CSV_Data"]["Director(s)"]),
         "release_year": int(data["Original_CSV_Data"]["Production Year"]),
         "rating":  str(rating),
@@ -250,12 +254,14 @@ def save_episode(data, serie_id, video_id):
 
 def update_series(data, series_id):
     rating = "PG" if str(data["Original_CSV_Data"]["Rating"]) == "" else str(data["Original_CSV_Data"]["Rating"])
+    poster_url = data["UserMetadata"]["PosterUrl"]
+    trailer_url = "" if str(data["Original_CSV_Data"]["Trailer"]) == "No" else str(data["UserMetadata"]["TrailerUrl"])
     series_data = {
         "title": f"{data["Original_CSV_Data"]["Movie/Show Title"]}",
         "description": f"{data["Original_CSV_Data"]["Episode Synopsis"]}",
         "category": f"{data["Original_CSV_Data"]["Genre"]}",
-        "poster_url": f"{str(SHOWS_PUBLIC_CLOUDFRONT_URL)}/s3_key/img.jpg",
-        "trailer_url": f"{str(SHOWS_PUBLIC_CLOUDFRONT_URL)}/s3_key/img.mp4",
+        "poster_url": str(poster_url),
+        "trailer_url": str(trailer_url),
         "director": str(data["Original_CSV_Data"]["Director(s)"]),
         "release_year": int(data["Original_CSV_Data"]["Production Year"]),
         "rating":  str(rating),
@@ -281,12 +287,13 @@ def update_series(data, series_id):
         raise Exception(f"-- Function update_series:  Error saving ing Supabase: {e}")
 
 def update_videos(data, video_id):
+    thumbnail = data["UserMetadata"]["PosterUrl"]
     video_data = {
         "title": f"{data["Original_CSV_Data"]["Movie/Show Title"]} - Episode {data["Original_CSV_Data"]["Episode Number"]} - {data["Original_CSV_Data"]["Episode Name"]}",
         "description": f"{data["Original_CSV_Data"]["Episode Synopsis"]}",
         "duration": int(data["Original_CSV_Data"]["Episode Running Time"]),
         "category": f"{data["Original_CSV_Data"]["Genre"]}",
-        "thumbnail": f"{str(SHOWS_PUBLIC_CLOUDFRONT_URL)}/s3_key/img.jpg",
+        "thumbnail": str(thumbnail),
         "video_url": f"{data["UserMetadata"]["MasterFileURL"]}",
         "drm_protected": drm_enabled(),
         "drm_license_url": str(DRM_LICENCE_URL),
@@ -295,7 +302,7 @@ def update_videos(data, video_id):
         "rating":  f"{data["Original_CSV_Data"]["Rating"]}",
         "cast_members": str(data["Original_CSV_Data"]["Cast"]).split(","),
         "director": str(data["Original_CSV_Data"]["Director(s)"]),
-        "trailer_url": f"{str(SHOWS_PUBLIC_CLOUDFRONT_URL)}/s3_key/img.mp4",
+        #"trailer_url": f"{str(SHOWS_PUBLIC_CLOUDFRONT_URL)}/s3_key/img.mp4",
         "subscription_required": "premium",
         "is_premium": True,
         "quality": "HD",
@@ -398,21 +405,23 @@ def lambda_handler(event, context):
     logger.info(json.dumps(event))
 
     try:
-        video_id = get_video(event, event["Original_CSV_Data"]["Movie/Show Title"], event["Original_CSV_Data"]["Episode Number"], event["Original_CSV_Data"]["Episode Name"])
-        logger.info(f"-- video_id: {video_id}")
-        series_id = get_series(event, event["Original_CSV_Data"]["Movie/Show Title"])
-        logger.info(f"-- series_id: {series_id}")
-        episode_id = get_series_episode(event, series_id, video_id)
-        logger.info(f"-- episode_id: {episode_id} with video_id {video_id} and series_id {series_id}")
+        if ALLOW_SUPABASE_WRITE == "True":
+            video_id = get_video(event, event["Original_CSV_Data"]["Movie/Show Title"], event["Original_CSV_Data"]["Episode Number"], event["Original_CSV_Data"]["Episode Name"])
+            logger.info(f"-- video_id: {video_id}")
+            series_id = get_series(event, event["Original_CSV_Data"]["Movie/Show Title"])
+            logger.info(f"-- series_id: {series_id}")
+            episode_id = get_series_episode(event, series_id, video_id)
+            logger.info(f"-- episode_id: {episode_id} with video_id {video_id} and series_id {series_id}")
 
-        logger.info("-- Updating information required...")
+            logger.info("-- Updating information required...")
 
-        logger.info(json.dumps(update_episodes(event, series_id, video_id)))
-        logger.info(json.dumps(update_videos(event, video_id)))
-        logger.info(json.dumps(update_series(event, series_id)))
+            logger.info(json.dumps(update_episodes(event, series_id, video_id)))
+            logger.info(json.dumps(update_videos(event, video_id)))
+            logger.info(json.dumps(update_series(event, series_id)))
 
-        logger.info("-- Finish All Updates")
-        
+            logger.info("-- Finish All Updates")
+        else:
+            logger.info(f"-- Supabase Updates Ignored because of flag: {ALLOW_SUPABASE_WRITE}")
         return event
 
     except Exception as e:
