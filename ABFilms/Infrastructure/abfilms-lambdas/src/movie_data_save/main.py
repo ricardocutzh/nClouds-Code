@@ -26,12 +26,13 @@ def drm_enabled():
     return False
 
 def update_videos(data, video_id):
+    thumbnail = data["Original_CSV_Data"]["PosterUrl"]
     video_data = {
         "title": f"{data["Original_CSV_Data"]["Movie/Show Title"]}",
         "description": f"{data["Original_CSV_Data"]["Movie/Show Synopsis"]}",
         "duration": int(data["Original_CSV_Data"]["Movie Running Time"]),
         "category": f"{data["Original_CSV_Data"]["Genre"]}",
-        "thumbnail": f"{str(SHOWS_PUBLIC_CLOUDFRONT_URL)}/s3_key/img.jpg",
+        "thumbnail": str(thumbnail),
         "video_url": f"{data["UserMetadata"]["MasterFileURL"]}",
         "drm_protected": drm_enabled(),
         "drm_license_url": str(DRM_LICENCE_URL),
@@ -66,13 +67,14 @@ def update_videos(data, video_id):
 def save_video(data):
     # save the video if episode does not exist in the video table
     # return video_id
+    thumbnail = data["Original_CSV_Data"]["PosterUrl"]
     video_data = {
         "title": f"{data["Original_CSV_Data"]["Movie/Show Title"]}",
         "description": f"{data["Original_CSV_Data"]["Movie/Show Synopsis"]}",
         "duration": int(data["Original_CSV_Data"]["Movie Running Time"]),
         "category": f"{data["Original_CSV_Data"]["Genre"]}",
         "category": f"Test",
-        "thumbnail": f"{str(SHOWS_PUBLIC_CLOUDFRONT_URL)}/s3_key/img.jpg",
+        "thumbnail": str(thumbnail),
         "video_url": f"{data["UserMetadata"]["MasterFileURL"]}",
         "drm_protected": drm_enabled(),
         "drm_license_url": str(DRM_LICENCE_URL),
