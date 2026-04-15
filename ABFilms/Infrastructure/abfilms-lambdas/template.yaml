@@ -51,10 +51,83 @@ Parameters:
     Type: String
     Default: "NOT_SET"
 
+  SupaBaseUrl:
+    Type: String
+    Default: "NOT_SET"
+
+  SupaBaseServiceRole:
+    Type: String
+    Default: "NOT_SET"
+
+  DrmEnabled:
+    Type: String
+    Default: "True"
+
+  DrmLicenseUrl:
+    Type: String
+    Default: "https://mock.com/license"
+
+  PublicAssetsCdn:
+    Type: String
+    Default: "https://cdn.com/license"
+
 Conditions:
   IsDev: !Equals [!Ref Environment, "dev"]
 
 Resources:
+
+  MoviesDataSaveLambdaLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "abfilms-${Identifier}-${Environment}-movie-save-data/logs"
+      RetentionInDays: !If [IsDev, 7, 90]
+
+  MoviesDataSaveLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "abfilms-${Identifier}-${Environment}-movie-save-data"
+      CodeUri: src/movie_data_save
+      Handler: main.lambda_handler
+      Runtime: python3.13
+      MemorySize: 128
+      Timeout: 120
+      Policies:
+        - CloudWatchPutMetricPolicy: {}
+      Environment:
+        Variables:
+          DRM_ENABLED: !Ref DrmEnabled
+          SHOWS_PUBLIC_CLOUDFRONT_URL: !Ref PublicAssetsCdn
+          DRM_LICENCE_URL: !Ref DrmLicenseUrl
+          ENVIRONMENT: !Ref Environment
+          SUPABASE_URL: !Sub "{{resolve:secretsmanager:${SupaBaseUrl}:SecretString::AWSCURRENT}}"
+          SERVICE_ROLE_KEY: !Sub "{{resolve:secretsmanager:${SupaBaseServiceRole}:SecretString::AWSCURRENT}}"
+      LoggingConfig:
+        LogGroup: !Ref MoviesDataSaveLambdaLogs
+
+  ShowDataSaveLambdaLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "abfilms-${Identifier}-${Environment}-show-save-data/logs"
+      RetentionInDays: !If [IsDev, 7, 90]
+
+  ShowDataSaveLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "abfilms-${Identifier}-${Environment}-show-save-data"
+      CodeUri: src/show_data_save
+      Handler: main.lambda_handler
+      Runtime: python3.13
+      MemorySize: 128
+      Timeout: 120
+      Policies:
+        - CloudWatchPutMetricPolicy: {}
+      Environment:
+        Variables:
+          ENVIRONMENT: !Ref Environment
+          SUPABASE_URL: !Sub "{{resolve:secretsmanager:${SupaBaseUrl}:SecretString::AWSCURRENT}}"
+          SERVICE_ROLE_KEY: !Sub "{{resolve:secretsmanager:${SupaBaseServiceRole}:SecretString::AWSCURRENT}}"
+      LoggingConfig:
+        LogGroup: !Ref ShowDataSaveLambdaLogs
 
   JobBuilderLogs:
     Type: AWS::Logs::LogGroup
@@ -108,7 +181,7 @@ Resources:
             Next: CreateMediaConvertJobMovies
             Catch:
               - ErrorEquals: ["States.ALL"]
-                Next: JobBuilderFailed
+                Next: GeneralFailed
             #End: true
           
           CreateMediaConvertJobMovies:
@@ -123,9 +196,17 @@ Resources:
             Catch:
               - ErrorEquals: ["States.ALL"]
                 Next: MediaConvertJobFailed
-            End: true
+            Next: MovieDataSave
 
-          JobBuilderFailed:
+          MovieDataSave:
+            Type: Task
+            Resource: !GetAtt MoviesDataSaveLambda.Arn
+            End: True
+            Catch:
+              - ErrorEquals: ["States.ALL"]
+                Next: GeneralFailed
+
+          GeneralFailed:
             Type: Fail
             ErrorPath: "$.Error"
             CausePath: "$.Cause"
@@ -145,6 +226,8 @@ Resources:
         - CloudWatchLogsFullAccess
         - LambdaInvokePolicy:
             FunctionName: !Ref JobBuilder
+        - LambdaInvokePolicy:
+            FunctionName: !Ref MoviesDataSaveLambda
         - AWSElementalMediaConvertFullAccess
         - Statement:
           - Effect: Allow
@@ -171,7 +254,7 @@ Resources:
             Next: CreateMediaConvertJobShows
             Catch:
               - ErrorEquals: ["States.ALL"]
-                Next: JobBuilderFailed
+                Next: GeneralFailed
                 #ResultPath: "$.ErrorDetails"
             #End: true
           
@@ -187,9 +270,17 @@ Resources:
             Catch:
               - ErrorEquals: ["States.ALL"]
                 Next: MediaConvertJobFailed
-            End: true
+            Next: ShowDataSave
 
-          JobBuilderFailed:
+          ShowDataSave:
+            Type: Task
+            Resource: !GetAtt ShowDataSaveLambda.Arn
+            End: True
+            Catch:
+              - ErrorEquals: ["States.ALL"]
+                Next: GeneralFailed
+
+          GeneralFailed:
             Type: Fail
             ErrorPath: "$.Error"
             CausePath: "$.Cause"
@@ -209,6 +300,8 @@ Resources:
         - CloudWatchLogsFullAccess
         - LambdaInvokePolicy:
             FunctionName: !Ref JobBuilder
+        - LambdaInvokePolicy:
+            FunctionName: !Ref ShowDataSaveLambda
         - AWSElementalMediaConvertFullAccess
         - Statement:
           - Effect: Allow
