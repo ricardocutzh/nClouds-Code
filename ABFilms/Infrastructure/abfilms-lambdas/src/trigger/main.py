@@ -148,6 +148,8 @@ def lambda_handler(event, context):
             sku = str(d["Movie/Show Filmhub SKU"]) if d["Program Type"] == "Movie" else str(d["Episode SKU"])
 
             safe_name = f"pln-{d["Program Type"].lower()}-{str(environment)}-{d["Movie/Show Title"].replace(" ", "")}-sku_{sku}-{short_hash}"
+            
+            safe_name = safe_name.replace(":", "")
 
             if d["Program Type"] == "Movie":
                 movie_subtitles_captions_languages = d["Movie Subtitles/Captions Languages"].replace(" ", "").split(",")

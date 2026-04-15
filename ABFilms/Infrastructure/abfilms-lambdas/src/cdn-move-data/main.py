@@ -50,11 +50,16 @@ def move_images(event):
 
     copy_to_s3(event, event["ParentS3Folder"], img_16_9)
 
-    for img in other_key_art_imgs:
-        copy_to_s3(event, event["ParentS3Folder"], img)
+    try:
 
-    for img in other_images:
-        copy_to_s3(event, event["ParentS3Folder"], img)
+        for img in other_key_art_imgs:
+            copy_to_s3(event, event["ParentS3Folder"], img)
+
+        for img in other_images:
+            copy_to_s3(event, event["ParentS3Folder"], img)
+    except Exception as e:
+        logger.error(f"-- Error: {str(e)}")
+        return False
 
     return True
 

@@ -26,7 +26,8 @@ def drm_enabled():
     return False
 
 def update_videos(data, video_id):
-    thumbnail = data["Original_CSV_Data"]["PosterUrl"]
+    thumbnail = data["UserMetadata"]["PosterUrl"]
+    trailer_url = "" if str(data["Original_CSV_Data"]["Trailer"]) == "No" else str(data["UserMetadata"]["TrailerUrl"])
     video_data = {
         "title": f"{data["Original_CSV_Data"]["Movie/Show Title"]}",
         "description": f"{data["Original_CSV_Data"]["Movie/Show Synopsis"]}",
@@ -41,7 +42,7 @@ def update_videos(data, video_id):
         "rating":  f"{data["Original_CSV_Data"]["Rating"]}",
         "cast_members": str(data["Original_CSV_Data"]["Cast"]).split(","),
         "director": str(data["Original_CSV_Data"]["Director(s)"]),
-        "trailer_url": f"{str(SHOWS_PUBLIC_CLOUDFRONT_URL)}/s3_key/img.mp4",
+        "trailer_url": str(trailer_url),
         "subscription_required": "premium",
         "is_premium": True,
         "quality": "HD",
@@ -67,7 +68,8 @@ def update_videos(data, video_id):
 def save_video(data):
     # save the video if episode does not exist in the video table
     # return video_id
-    thumbnail = data["Original_CSV_Data"]["PosterUrl"]
+    thumbnail = data["UserMetadata"]["PosterUrl"]
+    trailer_url = "" if str(data["Original_CSV_Data"]["Trailer"]) == "No" else str(data["UserMetadata"]["TrailerUrl"])
     video_data = {
         "title": f"{data["Original_CSV_Data"]["Movie/Show Title"]}",
         "description": f"{data["Original_CSV_Data"]["Movie/Show Synopsis"]}",
@@ -83,7 +85,7 @@ def save_video(data):
         "rating":  f"{data["Original_CSV_Data"]["Rating"]}",
         "cast_members": str(data["Original_CSV_Data"]["Cast"]).split(", "),
         "director": str(data["Original_CSV_Data"]["Director(s)"]),
-        "trailer_url": f"{str(SHOWS_PUBLIC_CLOUDFRONT_URL)}/s3_key/img.mp4",
+        "trailer_url": str(trailer_url),
         "subscription_required": "premium",
         "is_premium": True,
         "quality": "HD",

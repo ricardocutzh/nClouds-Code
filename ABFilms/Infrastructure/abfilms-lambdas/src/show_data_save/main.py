@@ -158,7 +158,7 @@ def episode_exists(serie_id, video_id):
 def save_video(data):
     # save the video if episode does not exist in the video table
     # return video_id
-    thumbnail = data["Original_CSV_Data"]["PosterUrl"]
+    thumbnail = data["UserMetadata"]["PosterUrl"]
     video_data = {
         "title": f"{data["Original_CSV_Data"]["Movie/Show Title"]} - Episode {data["Original_CSV_Data"]["Episode Number"]} - {data["Original_CSV_Data"]["Episode Name"]}",
         "description": f"{data["Original_CSV_Data"]["Episode Synopsis"]}",
@@ -173,7 +173,7 @@ def save_video(data):
         "rating":  f"{data["Original_CSV_Data"]["Rating"]}",
         "cast_members": str(data["Original_CSV_Data"]["Cast"]).split(", "),
         "director": str(data["Original_CSV_Data"]["Director(s)"]),
-        "trailer_url": f"{str(SHOWS_PUBLIC_CLOUDFRONT_URL)}/s3_key/img.mp4",
+        #"trailer_url": f"{str(SHOWS_PUBLIC_CLOUDFRONT_URL)}/s3_key/img.mp4",
         "subscription_required": "premium",
         "is_premium": True,
         "quality": "HD",
@@ -200,8 +200,8 @@ def save_video(data):
 def save_series(data):
     # save the series and return id
     rating = "PG" if str(data["Original_CSV_Data"]["Rating"]) == "" else str(data["Original_CSV_Data"]["Rating"])
-    poster_url = data["Original_CSV_Data"]["PosterUrl"]
-    trailer_url = "" if str(data["Original_CSV_Data"]["Trailer"]) == "No" else str(data["Original_CSV_Data"]["Trailer Filename"])
+    poster_url = data["UserMetadata"]["PosterUrl"]
+    trailer_url = "" if str(data["Original_CSV_Data"]["Trailer"]) == "No" else str(data["UserMetadata"]["TrailerUrl"])
     series_data = {
         "title": f"{data["Original_CSV_Data"]["Movie/Show Title"]}",
         "description": f"{data["Original_CSV_Data"]["Episode Synopsis"]}",
@@ -254,8 +254,8 @@ def save_episode(data, serie_id, video_id):
 
 def update_series(data, series_id):
     rating = "PG" if str(data["Original_CSV_Data"]["Rating"]) == "" else str(data["Original_CSV_Data"]["Rating"])
-    poster_url = data["Original_CSV_Data"]["PosterUrl"]
-    trailer_url = "" if str(data["Original_CSV_Data"]["Trailer"]) == "No" else str(data["Original_CSV_Data"]["Trailer Filename"])
+    poster_url = data["UserMetadata"]["PosterUrl"]
+    trailer_url = "" if str(data["Original_CSV_Data"]["Trailer"]) == "No" else str(data["UserMetadata"]["TrailerUrl"])
     series_data = {
         "title": f"{data["Original_CSV_Data"]["Movie/Show Title"]}",
         "description": f"{data["Original_CSV_Data"]["Episode Synopsis"]}",
@@ -287,7 +287,7 @@ def update_series(data, series_id):
         raise Exception(f"-- Function update_series:  Error saving ing Supabase: {e}")
 
 def update_videos(data, video_id):
-    thumbnail = data["Original_CSV_Data"]["PosterUrl"]
+    thumbnail = data["UserMetadata"]["PosterUrl"]
     video_data = {
         "title": f"{data["Original_CSV_Data"]["Movie/Show Title"]} - Episode {data["Original_CSV_Data"]["Episode Number"]} - {data["Original_CSV_Data"]["Episode Name"]}",
         "description": f"{data["Original_CSV_Data"]["Episode Synopsis"]}",
@@ -302,7 +302,7 @@ def update_videos(data, video_id):
         "rating":  f"{data["Original_CSV_Data"]["Rating"]}",
         "cast_members": str(data["Original_CSV_Data"]["Cast"]).split(","),
         "director": str(data["Original_CSV_Data"]["Director(s)"]),
-        "trailer_url": f"{str(SHOWS_PUBLIC_CLOUDFRONT_URL)}/s3_key/img.mp4",
+        #"trailer_url": f"{str(SHOWS_PUBLIC_CLOUDFRONT_URL)}/s3_key/img.mp4",
         "subscription_required": "premium",
         "is_premium": True,
         "quality": "HD",
