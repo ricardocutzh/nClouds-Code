@@ -1,5 +1,6 @@
 region: "us-east-1"
 identifier: "zexa-livego"
+account_id: 098072157095
 
 networking_config:
   enable: true
@@ -27,6 +28,15 @@ s3_hls:
   recording_retention_days: 60
   cors_origins: 
     - "*"
+
+monitoring_config:
+  instance_id: null
+  instance_name: LiveGo
+  cpu_threshold: 80
+  memory_threshold: 80
+  disk_threshold: 75
+  evaluation_periods: 1
+  period: 300
 
 tags: 
   Project: LiveGoServer
