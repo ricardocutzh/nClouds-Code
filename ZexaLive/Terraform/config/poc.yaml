@@ -28,5 +28,26 @@ s3_hls:
   cors_origins: 
     - "*"
 
+server_config:
+  volume_size: 20
+  volume_type: "gp3"
+  monitoring_enabled: true
+  user_data:
+    package_update: true
+    package_upgrade: true
+
+    packages:
+      - git
+      - htop
+      - docker
+      - unzip
+      - curl
+
+    runcmd:
+      - sudo curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/tmp/awscliv2.zip"
+      - sudo unzip -q /tmp/awscliv2.zip -d /tmp
+      - sudo /tmp/aws/install --update
+      - sudo rm -rf /tmp/aws /tmp/awscliv2.zip
+
 tags: 
   Project: LiveGoServer
