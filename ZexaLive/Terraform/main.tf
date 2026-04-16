@@ -19,3 +19,17 @@ module "live_go_launch_template" {
   monitoring_enabled = local.config.server_config.monitoring_enabled
   tags = local.tags
 }
+
+module "live_go_asg" {
+  source = "./modules/tf-asg"
+
+  identifier = local.identifier
+  min_instances = 0
+  max_instances = 0
+  launch_template_id = module.live_go_launch_template.launch_template.id
+  launch_template_version = module.live_go_launch_template.launch_template.latest_version
+  subnets_ids = module.vpc[0].public_subnets
+  security_group_id = module.vpc_sgs["server"].security_group_id
+  instance_type = "t3.small"
+  tags = local.tags
+}

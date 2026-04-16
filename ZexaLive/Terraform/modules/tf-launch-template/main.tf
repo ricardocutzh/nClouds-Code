@@ -1,4 +1,4 @@
-resource "aws_launch_template" "al2023_locked_template" {
+resource "aws_launch_template" "server_launch_template" {
   name          = "${var.identifier}-server"
   image_id      = data.aws_ami.al2023_specific_release.image_id
   block_device_mappings {
