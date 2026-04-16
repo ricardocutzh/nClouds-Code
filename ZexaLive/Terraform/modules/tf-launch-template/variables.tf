@@ -30,9 +30,19 @@ variable "monitoring_enabled" {
     default = true
 }
 
+variable "instance_profile" {
+    type = string
+}
+
 variable "user_data" {
     type = any
     default = {}
+}
+
+variable "security_group_ids" {
+  description = "Security Groups Associated"
+  type        = list(string)
+  default     = []
 }
 # variable "security_group_id" {
 #     description = "server security group"

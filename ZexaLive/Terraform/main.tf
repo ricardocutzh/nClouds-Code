@@ -17,6 +17,8 @@ module "live_go_launch_template" {
   volume_size = local.config.server_config.volume_size
   volume_type = local.config.server_config.volume_type
   monitoring_enabled = local.config.server_config.monitoring_enabled
+  instance_profile = aws_iam_instance_profile.server_role.name
+  security_group_ids = [module.vpc_sgs["server"].security_group_id]
   tags = local.tags
 }
 
@@ -24,12 +26,11 @@ module "live_go_asg" {
   source = "./modules/tf-asg"
 
   identifier = local.identifier
-  min_instances = 0
-  max_instances = 0
+  min_instances = local.config.server_config.min_instances
+  max_instances = local.config.server_config.max_instances
   launch_template_id = module.live_go_launch_template.launch_template.id
   launch_template_version = module.live_go_launch_template.launch_template.latest_version
   subnets_ids = module.vpc[0].public_subnets
-  security_group_id = module.vpc_sgs["server"].security_group_id
-  instance_type = "t3.small"
+  instance_type =local.config.server_config.instance_type
   tags = local.tags
 }

@@ -33,12 +33,6 @@ variable "instance_type" {
   default     = "t3.micro"
 }
 
-variable "security_group_id" {
-  description = "Security Group ID (Note: Usually attached via Launch Template)"
-  type        = string
-  default     = ""
-}
-
 variable "tags" {
     description = "tags applied to all resources of the module"
     type        = map(string)

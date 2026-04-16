@@ -38,4 +38,20 @@ resource "aws_autoscaling_group" "server_asg" {
       }
     }
   }
+
+  instance_refresh {
+    strategy = "Rolling"
+    
+    preferences {
+      # Ensures you don't take down all your servers at once.
+      # If set to 50, and you have 2 instances, it will replace 1 at a time.
+      min_healthy_percentage = 50 
+      
+      # Optional: How long to wait before moving to the next instance
+      # instance_warmup = 300 
+    }
+    
+    # Optional: You can trigger a refresh if other specific attributes change
+    triggers = ["mixed_instances_policy"] 
+  }
 }

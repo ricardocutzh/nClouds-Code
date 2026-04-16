@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LiveGo Ultimate Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --card-bg: #161b22;
+            --border-color: #30363d;
+            --accent-color: #58a6ff;
+            --success-color: #238636;
+            --danger-color: #da3633;
+            --text-main: #c9d1d9;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            padding-top: 2rem;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-main);
+            margin-bottom: 1.5rem;
+        }
+
+        .form-control {
+            background-color: #010409;
+            border: 1px solid var(--border-color);
+            color: white;
+        }
+
+        .form-control:focus {
+            background-color: #010409;
+            border-color: var(--accent-color);
+            color: white;
+            box-shadow: none;
+        }
+
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            background: #000;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #ff7b72;
+        }
+
+        .status-dot {
+            height: 10px;
+            width: 10px;
+            background-color: #8b949e;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .status-live {
+            background-color: #3fb950;
+            box-shadow: 0 0 10px #238636;
+        }
+
+        .btn-copy {
+            padding: 0px 8px;
+            font-size: 0.8rem;
+        }
+
+        .refresh-indicator {
+            font-size: 0.8rem;
+            color: #8b949e;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">📡 LiveGo Monitor</h1>
+            <p class="refresh-indicator mb-0" id="lastUpdated">Initializing...</p>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <label class="text-nowrap">Server IP:</label>
+            <input type="text" id="serverIp" class="form-control w-auto" value="54.227.13.114">
+            <button onclick="fetchStats()" class="btn btn-outline-light">🔄</button>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card p-4">
+                <h5 class="mb-3">Room Management</h5>
+                <div class="input-group">
+                    <input type="text" id="roomName" class="form-control" placeholder="Enter Room Name (e.g., movie_1)">
+                    <button class="btn btn-success" onclick="manageRoom('get')">Get Key</button>
+                    <button class="btn btn-outline-danger" onclick="manageRoom('delete')">Delete Room</button>
+                </div>
+
+                <div id="resultContainer" class="mt-3 p-3 bg-black rounded d-none">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="text-muted d-block">Stream Key:</small>
+                            <code id="resultText"></code>
+                        </div>
+                        <button class="btn btn-sm btn-secondary btn-copy" onclick="copyKey()">Copy</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card p-3 text-center h-100">
+                <div class="row m-0 h-100 align-items-center">
+                    <div class="col-6 border-end border-secondary">
+                        <small class="text-muted">Publishers</small>
+                        <h2 id="pubCount" class="mb-0">0</h2>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted">Players</small>
+                        <h2 id="playCount" class="mb-0">0</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-2">
+        <div class="card-header border-bottom border-secondary d-flex justify-content-between">
+            <h5 class="mb-0 py-1">Active Publishers (Consult)</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-dark table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Stream Path / Key</th>
+                        <th>Video Sent</th>
+                        <th>Audio Sent</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="statTable">
+                    <tr><td colspan="5" class="text-center py-4 text-muted">No active streams detected.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    const serverIpInput = document.getElementById('serverIp');
+    const resultContainer = document.getElementById('resultContainer');
+    const resultText = document.getElementById('resultText');
+
+    // --- Control API: Get/Delete ---
+    async function manageRoom(action) {
+        const room = document.getElementById('roomName').value.trim();
+        const ip = serverIpInput.value;
+
+        if (!room) {
+            alert("Please provide a room name.");
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/control/${action}?ip=${ip}&room=${room}`);
+            const json = await res.json();
+            
+            if (action === 'get') {
+                resultContainer.classList.remove('d-none');
+                resultText.innerText = json.data;
+            } else {
+                alert(`Room "${room}" deleted successfully.`);
+                resultContainer.classList.add('d-none');
+                fetchStats();
+            }
+        } catch (e) {
+            alert("API Error: Check if server is running and IP is correct.");
+        }
+    }
+
+    // --- Stats API: Consult ---
+    async function fetchStats() {
+        const ip = serverIpInput.value;
+        try {
+            const res = await fetch(`/api/stats?ip=${ip}`);
+            const json = await res.json();
+            render(json.data);
+            document.getElementById('lastUpdated').innerText = `Last updated: ${new Date().toLocaleTimeString()}`;
+        } catch (e) {
+            console.error("Stats fetch failed");
+            document.getElementById('lastUpdated').innerText = "Update failed. Check connection.";
+        }
+    }
+
+    function render(data) {
+        const publishers = data.publishers || [];
+        const players = data.players || [];
+        
+        document.getElementById('pubCount').innerText = publishers.length;
+        document.getElementById('playCount').innerText = players.length;
+
+        const table = document.getElementById('statTable');
+        
+        if (publishers.length === 0) {
+            table.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No active streams detected.</td></tr>';
+            return;
+        }
+
+        table.innerHTML = publishers.map(p => {
+            // LiveGo keys look like "live/KEY_NAME", let's extract the key name for the delete action
+            const roomName = p.key.split('/').pop();
+            return `
+                <tr>
+                    <td><code>${p.key}</code></td>
+                    <td>${(p.video_total_bytes / 1024 / 1024).toFixed(2)} MB</td>
+                    <td>${(p.audio_total_bytes / 1024 / 1024).toFixed(2)} MB</td>
+                    <td><span class="status-dot status-live"></span> Live</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-danger" onclick="killStream('${roomName}')">Kill Room</button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    async function killStream(room) {
+        if(confirm(`Are you sure you want to stop the stream for room: ${room}?`)) {
+            document.getElementById('roomName').value = room;
+            await manageRoom('delete');
+        }
+    }
+
+    function copyKey() {
+        const key = resultText.innerText;
+        navigator.clipboard.writeText(key);
+        const copyBtn = document.querySelector('.btn-copy');
+        copyBtn.innerText = "Copied!";
+        copyBtn.classList.replace('btn-secondary', 'btn-success');
+        setTimeout(() => {
+            copyBtn.innerText = "Copy";
+            copyBtn.classList.replace('btn-success', 'btn-secondary');
+        }, 2000);
+    }
+
+    // Auto-Refresh Logic
+    setInterval(fetchStats, 10000); // 10 Seconds
+    fetchStats(); // Initial Load
+</script>
+
+</body>
+</html>

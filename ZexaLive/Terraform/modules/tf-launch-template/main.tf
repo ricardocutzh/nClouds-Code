@@ -13,6 +13,12 @@ resource "aws_launch_template" "server_launch_template" {
 
   user_data = base64encode("#cloud-config\n${yamlencode(var.user_data)}")
 
+  iam_instance_profile {
+    name = var.instance_profile
+  }
+
+  vpc_security_group_ids = var.security_group_ids
+
   monitoring {
     enabled = var.monitoring_enabled
   }
