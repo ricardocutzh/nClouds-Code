@@ -22,6 +22,11 @@ networking_config:
           protocol: -1
           description: Allow All Out
           cidr_blocks: 0.0.0.0/0
+s3_hls:
+  hls_retention_days: 7
+  recording_retention_days: 60
+  cors_origins: 
+    - "*"
 
 tags: 
   Project: LiveGoServer
