@@ -29,17 +29,24 @@ variable "m3u8_min_ttl" {
   description = "Minimum TTLT in seconds for .m3u8 playlist files"
   type = number
   default = 1
+}
 
-  validation {
-    condition = var.m3u8_min_ttl >= 0
-    error_message = "TTL cannot be negative"
-  }
+variable "m3u8_max_ttl" {
+  description = "Maximum TTL in seconds for .m3u8 playlist files"
+  type        = number
+  default     = 5
 }
 
 variable "ts_min_ttl" {
   description = "Minimum TTL in seconds for .ts segment files"
   type = number
   default = 30
+}
+
+variable "ts_max_ttl" {
+  description = "Maximum TTL in seconds for .ts segment files"
+  type = number
+  default = 86400
 }
 
 # distribution
