@@ -1,5 +1,6 @@
 region: "us-east-1"
 identifier: "zexa-livego"
+account_id: 098072157095
 
 networking_config:
   enable: true
@@ -71,6 +72,14 @@ server_config:
       - sudo chmod +x /usr/libexec/docker/cli-plugins/docker-compose
       - sudo /usr/libexec/docker/cli-plugins/docker-compose --version
       - cd /opt/livego && /usr/libexec/docker/cli-plugins/docker-compose up -d
+monitoring_config:
+  instance_id: null
+  instance_name: LiveGo
+  cpu_threshold: 80
+  memory_threshold: 80
+  disk_threshold: 75
+  evaluation_periods: 1
+  period: 300
 
 tags: 
   Project: LiveGoServer
