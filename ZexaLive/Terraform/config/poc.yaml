@@ -83,8 +83,8 @@ monitoring_config:
 
 cloudfront:
   price_class: "PriceClass_100"
-  cache_default_ttl: 1 
-  cache_min_ttl: 86400
+  cache_default_ttl: 86400 
+  cache_min_ttl: 1
   cache_max_ttl: 31536000
 
 tags: 
