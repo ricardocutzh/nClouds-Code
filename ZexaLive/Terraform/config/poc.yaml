@@ -81,5 +81,11 @@ monitoring_config:
   evaluation_periods: 1
   period: 300
 
+cloudfront:
+  price_class: "PriceClass_100"
+  cache_default_ttl: 1 
+  cache_min_ttl: 86400
+  cache_max_ttl: 31536000
+
 tags: 
   Project: LiveGoServer

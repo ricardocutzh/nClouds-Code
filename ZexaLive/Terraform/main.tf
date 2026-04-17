@@ -16,27 +16,26 @@ module "cdn" {
     source = "./modules/tf-cloudfront"
     bucket_regional_domain_name = module.hls_bucket.bucket_regional_domain_name
     bucket_arn = module.hls_bucket.bucket_arn
-    # m3u8_max_ttl = local.config.cloudfront.m3u8_max_ttl
-    # m3u8_min_ttl = local.config.cloudfront.m3u8_min_ttl
-    # ts_max_ttl   = local.config.cloudfront.ts_max_ttl
-    # ts_min_ttl   = local.config.cloudfront.ts_min_ttl
+    cache_default_ttl = local.config.cloudfront.cache_default_ttl
+    cache_min_ttl = local.config.cloudfront.cache_min_ttl
+    cache_max_ttl = local.config.cloudfront.cache_max_ttl
 
     identifier = local.identifier
     price_class = local.config.cloudfront.price_class
     tags = {
-      Project = local.config.Project
+      Project = local.config.tags.Project
     }
 }
 
-# output "hls_bucket_name" {
-#   description = "HLS bucket name. Should be used in Livego upload target."
-#   value       = module.hls_bucket.bucket_id
-# }
+output "hls_bucket_name" {
+  description = "HLS bucket name. Should be used in Livego upload target."
+  value       = module.hls_bucket.bucket_id
+}
 
-# output "stream_url_template" {
-#   description = "Base URL to test the stream."
-#   value       = "https://${module.cdn.distribution_domain_name}/live/{stream-id}/index.m3u8"
-# }
+output "stream_url_template" {
+  description = "Base URL to test the stream."
+  value       = "https://${module.cdn.distribution_domain_name}/live/{stream-id}/index.m3u8"
+}
   
 
 module "live_go_launch_template" {

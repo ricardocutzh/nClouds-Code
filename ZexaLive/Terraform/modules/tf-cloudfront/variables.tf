@@ -25,29 +25,24 @@ variable "bucket_arn" {
 }
 
 # cache behavior
-variable "m3u8_min_ttl" {
-  description = "Minimum TTLT in seconds for .m3u8 playlist files"
+variable "cache_min_ttl" {
+  description = "Minimum TTL in seconds for HLS files"
   type = number
   default = 1
 }
 
-variable "m3u8_max_ttl" {
-  description = "Maximum TTL in seconds for .m3u8 playlist files"
-  type        = number
-  default     = 5
-}
-
-variable "ts_min_ttl" {
-  description = "Minimum TTL in seconds for .ts segment files"
-  type = number
-  default = 30
-}
-
-variable "ts_max_ttl" {
-  description = "Maximum TTL in seconds for .ts segment files"
+variable "cache_default_ttl" {
+  description = "Default TTL in seconds for HLS files"
   type = number
   default = 86400
 }
+
+variable "cache_max_ttl" {
+  description = "Maximum TTL in seconds for HLS files"
+  type        = number
+  default     = 31536000
+}
+
 
 # distribution
 variable "price_class" {

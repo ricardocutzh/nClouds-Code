@@ -7,17 +7,25 @@ resource "aws_cloudfront_origin_access_control" "hls" {
 }
 
 # cache policy
-resource "aws_cloudfront_cache_policy" "m3u8" {
-  name    = "${var.identifier}-hls-m3u8-cache-policy"
-  comment = "Short TTL cache policy for HLS playlist files (.m3mu8)"
+resource "aws_cloudfront_cache_policy" "hls" {
+  name    = "${var.identifier}-hls-cache-policy"
+  comment = "Cache policy for HLS streaming (m3u8 and segments)"
 
-  min_ttl = var.m3u8_min_ttl
-  default_ttl = var.m3u8_min_ttl
-  max_ttl = var.m3u8_max_ttl
+  min_ttl = var.cache_min_ttl
+  default_ttl = var.cache_default_ttl
+  max_ttl = var.cache_max_ttl
 
   parameters_in_cache_key_and_forwarded_to_origin {
     headers_config {
-      header_behavior = "none"
+      header_behavior = "whitelist"
+
+      headers {
+        items = [
+            "Origin",
+            "Access-Control-Request-Method",
+            "Access-Control-Request-Headers"
+        ]
+      }
     }
 
     query_strings_config {
@@ -28,31 +36,6 @@ resource "aws_cloudfront_cache_policy" "m3u8" {
     }
     enable_accept_encoding_gzip = true
     enable_accept_encoding_brotli = true
-  }
-}
-
-resource "aws_cloudfront_cache_policy" "ts" {
-  name = "${var.identifier}-hls-ts-cache-policy"
-  comment = "Long TTL cache policy for HLS segment files (.ts)"
-
-  min_ttl = var.ts_min_ttl
-  default_ttl = var.ts_min_ttl
-  max_ttl = var.ts_max_ttl
-
-  parameters_in_cache_key_and_forwarded_to_origin {
-    headers_config {
-      header_behavior = "none"
-    }
-    query_strings_config {
-      query_string_behavior = "none"
-    }
-
-    cookies_config {
-      cookie_behavior = "none"
-    }
-
-    enable_accept_encoding_gzip = false
-    enable_accept_encoding_brotli = false
   }
 }
 
@@ -93,48 +76,22 @@ resource "aws_cloudfront_distribution" "hls" {
       origin_id = "S3-${var.identifier}-hls"
       domain_name = var.bucket_regional_domain_name
       origin_access_control_id = aws_cloudfront_origin_access_control.hls.id
-    }
 
-    ordered_cache_behavior {
-      path_pattern = "*.m3u8"
-      target_origin_id = "S3-${var.identifier}-hls"
-
-      allowed_methods = [ "GET", "HEAD" ]
-      cached_methods = [ "GET", "HEAD" ]
-
-      cache_policy_id = aws_cloudfront_cache_policy.m3u8.id
-      origin_request_policy_id = aws_cloudfront_origin_request_policy.hls.id
-
-      viewer_protocol_policy = "redirect-to-https"
-
-      compress = true
-    }
-
-    ordered_cache_behavior {
-      path_pattern = "*.ts"
-      target_origin_id = "S3-${var.identifier}-hls"
-
-      allowed_methods = [ "GET", "HEAD" ]
-      cached_methods = [ "GET", "HEAD" ]
-
-      cache_policy_id = aws_cloudfront_cache_policy.ts.id
-      origin_request_policy_id = aws_cloudfront_origin_request_policy.hls.id
-
-      viewer_protocol_policy = "redirect-to-https"
-      compress = false
+      s3_origin_config {
+        origin_access_identity = ""  # required to be empty with OAC
+      }
     }
 
     default_cache_behavior {
-      target_origin_id = "S3-${var.identifier}-hls"
+        target_origin_id = "S3-${var.identifier}-hls"
+        allowed_methods = ["GET", "HEAD", "OPTIONS"]
+        cached_methods  = ["GET", "HEAD"]
 
-      allowed_methods = ["GET", "HEAD"]
-      cached_methods  = ["GET", "HEAD"]
+        cache_policy_id          = aws_cloudfront_cache_policy.hls.id
+        origin_request_policy_id = aws_cloudfront_origin_request_policy.hls.id
 
-      # "CachingDisabled" managed policy by AWS
-      # its a safe fallback
-      cache_policy_id = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
-      viewer_protocol_policy = "redirect-to-https"
-      compress = true
+        viewer_protocol_policy = "redirect-to-https"
+        compress               = true
     }
 
     restrictions {
