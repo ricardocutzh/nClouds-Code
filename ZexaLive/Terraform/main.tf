@@ -34,11 +34,7 @@ module "live_go_asg" {
   instance_type =local.config.server_config.instance_type
   tags = local.tags
 }
-  tags = {
-    Project     = local.config.tags.Project
-  }
 
-}
 
 # TODO: Enable when the ASG resource is merged
 # module "monitoring" {
