@@ -1,7 +1,7 @@
 services:
   steampipe_tag:
     build: .
-    env_file: "primemedicine-infrastructure.env"
+    env_file: "rif.env"
     command: >
       dashboard.sh
     ports:
