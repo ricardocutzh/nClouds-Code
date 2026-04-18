@@ -399,6 +399,83 @@ def get_total_episodes(event, serie_id):
         logger.error(f"-- Function get_latest_season:  Error saving ing Supabase: {e}")
         raise Exception(f"-- Function get_latest_season:  Error saving ing Supabase: {e}")
 
+def save_video_asset(data, video_id):
+    video_asset = {
+        "video_id": str(video_id),
+        "asset_id": str(data["Original_CSV_Data"]["Episode SKU"])
+    }
+    logger.info(json.dumps(video_asset))
+    try:
+        response = requests.post(f"{SUPABASE_URL}/video_asset", headers=headers, json=video_asset)
+        
+        response.raise_for_status()
+        
+        result = response.json()
+
+        return result[0] if isinstance(result, list) else result
+
+    except Exception as e:
+        logger.error(f"-- Function save_video_asset:  Error saving ing Supabase: {e}")
+        raise Exception(f"-- Function save_video_asset:  Error saving ing Supabase: {e}")
+
+def video_asset_exists(video_id):
+    params = {
+        "video_id": f"eq.{video_id}",
+        "select": "id"
+    }
+
+    try:
+        response = requests.get(
+            f"{SUPABASE_URL}/video_asset", 
+            headers=headers, 
+            params=params
+        )
+        
+        # Raise an exception for 4xx or 5xx errors
+        response.raise_for_status()
+        
+        data = response.json()
+
+        # 3. Evaluate results
+        if data and len(data) > 0:
+            # Return the id of the first match found
+            return data[0].get('id')
+        
+        # Return -1 if the list is empty (no match)
+        return -1
+
+    except Exception as e:
+        logger.error(f"-- Function video_asset_exists:  Error querying Supabase: {e}")
+        raise Exception(f"-- Function video_asset_exists error {e}")
+
+def get_video_asset(data, video_id):
+    video_asset_id = video_asset_exists(video_id)
+    if video_asset_id == -1:
+        return save_video_asset(data, video_id)["id"]
+    return video_asset_id
+
+def update_video_asset(data, video_id):
+    params = {
+        "video_id": f"eq.{video_id}",
+    }
+    video_asset = {
+        "video_id": str(video_id),
+        "asset_id": str(data["Original_CSV_Data"]["Episode SKU"])
+    }
+    try:
+        response = requests.patch(f"{SUPABASE_URL}/video_asset?id=eq.{video_id}", headers=headers, params=params, json=video_asset)
+        
+        response.raise_for_status()
+        
+        result = response.json()
+
+        return result
+
+    except Exception as e:
+        logger.error(f"-- Function update_video_asset:  Error saving ing Supabase: {e}")
+        raise Exception(f"-- Function update_video_asset:  Error saving ing Supabase: {e}")
+
+
 def lambda_handler(event, context):
     # 1. Print the event as a formatted JSON string
     # 'indent=4' makes it readable in CloudWatch
@@ -412,12 +489,15 @@ def lambda_handler(event, context):
             logger.info(f"-- series_id: {series_id}")
             episode_id = get_series_episode(event, series_id, video_id)
             logger.info(f"-- episode_id: {episode_id} with video_id {video_id} and series_id {series_id}")
+            video_asset_id = get_video_asset(event, video_id)
+            logger.info(f"-- video_asset_id: {video_asset_id} with video_id {video_id} and asset_id {event["Original_CSV_Data"]["Episode SKU"]}")
 
             logger.info("-- Updating information required...")
 
             logger.info(json.dumps(update_episodes(event, series_id, video_id)))
             logger.info(json.dumps(update_videos(event, video_id)))
             logger.info(json.dumps(update_series(event, series_id)))
+            logger.info(json.dumps(update_video_asset(event, video_id)))
 
             logger.info("-- Finish All Updates")
         else:

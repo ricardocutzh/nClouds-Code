@@ -1,0 +1,73 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: SAM Template for JWT Generation API for DRM Information
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+
+  Identifier:
+    Type: String
+    Default: jwt-auth
+
+  DRMSecretName:
+    Type: String
+
+Conditions:
+  IsProd: !Equals [!Ref Environment, "prod"]
+
+Resources:
+
+  JwtLambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/abfilms-${Identifier}-${Environment}-generator"
+      RetentionInDays: !If [IsProd, 90, 7]
+
+  JwtApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref Environment
+      Cors:
+        AllowMethods: "'POST,OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'" # In production, replace '*' with your actual domain
+
+  # 4. The JWT Generator Lambda
+  JwtGeneratorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "abfilms-${Identifier}-${Environment}-drm-token-generator"
+      Handler: main.lambda_handler
+      Runtime: python3.13
+      MemorySize: 256
+      Timeout: 300
+      LoggingConfig:
+        LogGroup: !Ref JwtLambdaLogGroup
+      CodeUri: src/token-generator
+      Policies:
+        - CloudWatchPutMetricPolicy: {}
+        - Statement:
+            - Effect: Allow
+              Action:
+                - "secretsmanager:GetSecretValue"
+                - "secretsmanager:DescribeSecret"
+                - "secretsmanager:ListSecrets"
+              Resource: "*"
+      Environment:
+        Variables:
+          ENVIRONMENT: !Ref Environment
+          DRM_SECRET_NAME: !Ref DRMSecretName
+      Events:
+        GenerateToken:
+          Type: Api
+          Properties:
+            Path: /token
+            Method: post
+            RestApiId: !Ref JwtApi
+
+Outputs:
+  ApiUrl:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${JwtApi}.execute-api.${AWS::Region}.amazonaws.com/${Environment}/token"
