@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hybrid Shaka Diagnostic Player - Full Controls</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/shaka-player/4.3.5/shaka-player.compiled.js"></script>
+    <style>
+        body { background: #0b0e14; color: #c9d1d9; font-family: monospace; padding: 20px; }
+        .wrapper { max-width: 900px; margin: 0 auto; }
+        
+        /* UI Controls Styling */
+        .controls { margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 20px; align-items: center; background: #161b22; padding: 10px; border-radius: 8px; border: 1px solid #30363d; }
+        .control-group { display: flex; align-items: center; gap: 8px; }
+        select { 
+            background: #0d1117; color: #58a6ff; border: 1px solid #30363d; 
+            padding: 5px 10px; border-radius: 4px; outline: none; cursor: pointer; font-size: 11px;
+        }
+        label { font-size: 11px; color: #8b949e; text-transform: uppercase; font-weight: bold; }
+
+        #video { width: 100%; background: #000; border-radius: 8px; border: 1px solid #30363d; }
+        #log { background: #0d1117; color: #58a6ff; padding: 15px; border-radius: 8px; height: 300px; 
+               overflow-y: auto; border: 1px solid #30363d; font-size: 11px; margin-top: 15px; white-space: pre-wrap; }
+        .success { color: #7ee787; font-weight: bold; }
+        .error { color: #ff7b72; background: rgba(248, 81, 73, 0.1); }
+        .warn { color: #d29922; }
+    </style>
+</head>
+<body>
+<div class="wrapper">
+    <div class="controls">
+        <div class="control-group">
+            <label for="qualitySelect">Quality:</label>
+            <select id="qualitySelect">
+                <option value="auto">Auto (ABR)</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="captionSelect">Subtitles:</label>
+            <select id="captionSelect">
+                <option value="off">Off</option>
+            </select>
+        </div>
+    </div>
+    
+    <video id="video" controls autoplay muted playsinline></video>
+    <div id="log">--- Diagnostic Session Started ---<br></div>
+</div>
+
+<script>
+    const config = {
+        mode: "${PLAYBACK_MODE}", 
+        manifestUrl: "${MANIFEST_URL}",
+        tokenUrl: "${TOKEN_URL}",
+        licenseUrl: "${LICENSE_URL}",
+        assetId: "${ASSET_ID}"
+    };
+
+    const logEl = document.getElementById('log');
+    const qualitySelect = document.getElementById('qualitySelect');
+    const captionSelect = document.getElementById('captionSelect');
+
+    function log(msg, type = 'info') {
+        const div = document.createElement('div');
+        div.className = type;
+        div.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        logEl.appendChild(div);
+        logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    async function initApp() {
+        shaka.polyfill.installAll();
+        if (shaka.Player.isBrowserSupported()) {
+            initPlayer();
+        } else {
+            log("❌ Browser not supported", 'error');
+        }
+    }
+
+    async function initPlayer() {
+        const video = document.getElementById('video');
+        const player = new shaka.Player(video);
+        let authToken = "";
+
+        // --- TRACK MANAGEMENT ---
+
+        function updateQualityList() {
+            const tracks = player.getVariantTracks();
+            qualitySelect.innerHTML = '<option value="auto">Auto (ABR)</option>';
+            tracks.sort((a, b) => b.height - a.height);
+            tracks.forEach(track => {
+                const option = document.createElement('option');
+                option.value = track.id;
+                option.innerText = `${track.height}p (${(track.bandwidth / 1000000).toFixed(2)} Mbps)`;
+                qualitySelect.appendChild(option);
+            });
+        }
+
+        function updateCaptionList() {
+            const tracks = player.getTextTracks();
+            captionSelect.innerHTML = '<option value="off">Off</option>';
+            
+            // Filter unique languages
+            const languages = [...new Set(tracks.map(t => t.language))];
+            
+            languages.forEach(lang => {
+                const option = document.createElement('option');
+                option.value = lang;
+                option.innerText = lang.toUpperCase();
+                captionSelect.appendChild(option);
+            });
+        }
+
+        // --- EVENT LISTENERS FOR UI ---
+
+        qualitySelect.addEventListener('change', () => {
+            if (qualitySelect.value === 'auto') {
+                player.configure({ abr: { enabled: true } });
+            } else {
+                player.configure({ abr: { enabled: false } });
+                const track = player.getVariantTracks().find(t => t.id == qualitySelect.value);
+                player.selectVariantTrack(track, true);
+            }
+        });
+
+        captionSelect.addEventListener('change', () => {
+            if (captionSelect.value === 'off') {
+                log("🚫 Turning subtitles off");
+                player.setTextTrackVisibility(false);
+            } else {
+                log(`💬 Switching subtitles to: ${captionSelect.value.toUpperCase()}`);
+                player.setTextTrackVisibility(true);
+                player.selectTextLanguage(captionSelect.value);
+            }
+        });
+
+        // --- DRM CONFIGURATION ---
+        log(`Mode: ${config.mode.toUpperCase()}`);
+        if (config.mode === 'encrypted') {
+            try {
+                log(`🚀 Fetching token...`);
+                const response = await fetch(config.tokenUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ AssetId: config.assetId })
+                });
+                const data = await response.json();
+                authToken = data.token || data;
+
+                player.configure({
+                    drm: { servers: { 'com.widevine.alpha': config.licenseUrl } }
+                });
+
+                player.getNetworkingEngine().registerRequestFilter((type, request) => {
+                    if (type == shaka.net.NetworkingEngine.RequestType.LICENSE) {
+                        request.headers['x-dt-auth-token'] = authToken;
+                        request.headers['Accept'] = 'application/octet-stream';
+                    }
+                });
+            } catch (e) {
+                log("❌ DRM Init Failure: " + e.message, 'error');
+                return;
+            }
+        }
+
+        player.addEventListener('error', (ev) => log(`🛑 Shaka Error: ${ev.detail.code}`, 'error'));
+        
+        player.addEventListener('trackschanged', () => {
+            updateQualityList();
+            updateCaptionList();
+        });
+
+        try {
+            await player.load(config.manifestUrl);
+            log("🎬 Manifest Loaded", 'success');
+            updateQualityList();
+            updateCaptionList();
+        } catch (e) {
+            log("❌ Load Failure: " + e.message, 'error');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', initApp);
+</script>
+</body>
+</html>

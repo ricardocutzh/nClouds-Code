@@ -1,0 +1,5 @@
+{
+    "Identifier": "vod-pipeline",
+    "Environment": "prod",
+    "DRMSecretName": "prod/DRMToday/LicenseSecrets"
+}
