@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  drm-player:
+    build: .
+    ports:
+      - "8080:80"
+    environment:
+      # Change to "unencrypted" to test clear content
+      - PLAYBACK_MODE=encrypted 
+      
+      # Endpoints
+      - MANIFEST_URL=https://d27y62lnm1dcpo.cloudfront.net/Movies/Tears_of_Steel_0004-9498/output/cmaf-encrypt-t2/index.mpd
+      - TOKEN_URL=https://aau8hlwb58.execute-api.us-east-1.amazonaws.com/prod/token
+      - LICENSE_URL=https://lic.drmtoday.com/license-proxy-widevine/cenc/?specConform=true
+      - ASSET_ID=0004-9498
+    restart: always

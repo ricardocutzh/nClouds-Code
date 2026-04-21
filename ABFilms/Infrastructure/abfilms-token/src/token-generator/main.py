@@ -35,8 +35,8 @@ def lambda_handler(event, context):
 
         shared_secret_bytes = codecs.decode(shared_secret_value, 'hex')
 
-        custom_data = {"merchant": org_id, "userId": "testuser-id"}
-        customer_rights_token = { 'assetId': str(asset_id)}
+        custom_data = {"merchant": org_id}
+        customer_rights_token = { 'assetId': str(asset_id), 'ref': [":abfilms-test-template"]}
         header_params = {"kid": kid}
         now = datetime.datetime.now()
         payload_claims = {
@@ -47,6 +47,16 @@ def lambda_handler(event, context):
             "crt": json.dumps(customer_rights_token),
         }
         token = jwt.encode(payload_claims, shared_secret_bytes, algorithm='HS256', headers=header_params)
+
+        try:
+            shared_secret_bytes = codecs.decode(shared_secret_value, 'hex')
+            verified_payload = jwt.decode(token, shared_secret_bytes, algorithms=['HS256'])
+            print("Token is valid and verified.")
+        except jwt.ExpiredSignatureError:
+            print(f"Token expired.")
+        except jwt.InvalidSignatureError:
+            print(f"Signature verification failed.")
+
         logger.info(f'Generated JWT token:\n{token}')
 
         return {
