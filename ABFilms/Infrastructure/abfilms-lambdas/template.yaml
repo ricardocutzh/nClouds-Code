@@ -190,6 +190,7 @@ Resources:
         - CloudWatchPutMetricPolicy: {}
       Environment:
         Variables:
+          DRM_ENABLED: !Ref DrmEnabled
           ENVIRONMENT: !Ref Environment
           CLOUDFRONT_ENDPOINT: !Ref CloudfrontEndpoint
           DRMTODAY_API_ENDPOINT: !Ref DRMTodayApiEndpoint
