@@ -38,11 +38,13 @@ logger.setLevel(logging.INFO)
 
 def setup_drm_encryption(result_object, resource_id):
     for og in result_object["Settings"]["OutputGroups"]:
-        og["OutputGroupSettings"]["HlsGroupSettings"]["Encryption"] = {
+        og["OutputGroupSettings"]["CmafGroupSettings"]["Encryption"] = {
             "EncryptionMethod": "SAMPLE_AES",
+            "InitializationVectorInManifest": "EXCLUDE",
             "SpekeKeyProvider": {
                 "ResourceId": str(resource_id),
-                "SystemIds": drm_system_ids.split(","),
+                "HlsSignaledSystemIds": drm_system_ids.split(","),
+                "DashSignaledSystemIds": drm_system_ids.split(","),
                 "Url": str(drm_api_endpoint)
             },
             "Type": "SPEKE"
@@ -123,13 +125,14 @@ def generate_captions(subtitles_data, input_bucket, input_folder):
                 {
                     "NameModifier": f"_vtt_{lang.lower()}",
                     "ContainerSettings": {
-                        "Container": "M3U8"
+                        "Container": "CMFC"
                     },
                     "CaptionDescriptions": [
                         {
                             "CaptionSelectorName": f"{lang}",
                             "DestinationSettings": {
-                                "DestinationType": "WEBVTT"
+                                "DestinationType": "WEBVTT",
+                                "WebvttDestinationSettings": {}
                             }
                         }
                     ]
@@ -140,13 +143,14 @@ def generate_captions(subtitles_data, input_bucket, input_folder):
                 {
                     "NameModifier": f"_vtt_{lang.lower()}",
                     "ContainerSettings": {
-                        "Container": "M3U8"
+                        "Container": "CMFC"
                     },
                     "CaptionDescriptions": [
                         {
                             "CaptionSelectorName": f"{lang}",
                             "DestinationSettings": {
-                                "DestinationType": "WEBVTT"
+                                "DestinationType": "WEBVTT",
+                                "WebvttDestinationSettings": {}
                             },
                             "LanguageCode": f"{language_object["LanguageCode"]}",
                             "LanguageDescription": f"{language_object["LanguageDescription"]}"
@@ -178,9 +182,9 @@ def add_metadata(type, result_object, original_data):
         EpisodeName = original_data["Episode Name"].replace(" ", "_")
         Title = original_data["Movie/Show Title"].replace(" ", "_")
         if drm_api_endpoint != "NOT_SET" and drm_system_ids != "NOT_SET":
-            MasterFileUrl = f"https://{cf_endpoint}/Shows/{Title}/{Season}/{EpisodeNumber}_{EpisodeName}_{original_data["Episode SKU"]}/output/hls/index.m3u8"
+            MasterFileUrl = f"https://{cf_endpoint}/Shows/{Title}/{Season}/{EpisodeNumber}_{EpisodeName}_{original_data["Episode SKU"]}/output/cmaf/index.mpd"
         else: 
-            MasterFileUrl = f"https://{cf_endpoint}/Shows/{Title}/{Season}/{EpisodeNumber}_{EpisodeName}/output/hls/index.m3u8"
+            MasterFileUrl = f"https://{cf_endpoint}/Shows/{Title}/{Season}/{EpisodeNumber}_{EpisodeName}/output/cmaf/index.mpd"
         metadata = {
             "Type": "Show",
             "Environment": str(environment),
@@ -194,9 +198,9 @@ def add_metadata(type, result_object, original_data):
     if type == "movie":
         Title = original_data["Movie/Show Title"].replace(" ", "_")
         if drm_api_endpoint != "NOT_SET" and drm_system_ids != "NOT_SET":
-            MasterFileUrl = f"https://{cf_endpoint}/Movies/{Title}_{original_data["Movie/Show Filmhub SKU"]}/output/hls/index.m3u8"
+            MasterFileUrl = f"https://{cf_endpoint}/Movies/{Title}_{original_data["Movie/Show Filmhub SKU"]}/output/cmaf/index.mpd"
         else: 
-            MasterFileUrl = f"https://{cf_endpoint}/Movies/{Title}/output/hls/index.m3u8"
+            MasterFileUrl = f"https://{cf_endpoint}/Movies/{Title}/output/cmaf/index.mpd"
         metadata = {
             "Type": "Movie",
             "Environment": str(environment),
@@ -226,9 +230,9 @@ def lambda_handler(event, context):
 
         if event["type"] == "movie":
             if drm_api_endpoint != "NOT_SET" and drm_system_ids != "NOT_SET":
-                destination = f"s3://{event["out_s3_bucket"]}/Movies/{event["original_data"]["Movie/Show Title"].replace(" ", "_")}_{event["original_data"]["Movie/Show Filmhub SKU"]}/output/hls/index"
+                destination = f"s3://{event["out_s3_bucket"]}/Movies/{event["original_data"]["Movie/Show Title"].replace(" ", "_")}_{event["original_data"]["Movie/Show Filmhub SKU"]}/output/cmaf/index"
             else:
-                destination = f"s3://{event["out_s3_bucket"]}/Movies/{event["original_data"]["Movie/Show Title"].replace(" ", "_")}/output/hls/index"
+                destination = f"s3://{event["out_s3_bucket"]}/Movies/{event["original_data"]["Movie/Show Title"].replace(" ", "_")}/output/cmaf/index"
             input_mp4_file = event["original_data"]["Movie Filename"]
             resource_id = f"{event["original_data"]["Movie/Show Filmhub SKU"]}"
         if event["type"] == "show":
@@ -238,9 +242,9 @@ def lambda_handler(event, context):
             EpisodeName = event["original_data"]["Episode Name"].replace(" ", "_")
             Title = event["original_data"]["Movie/Show Title"].replace(" ", "_")
             if drm_api_endpoint != "NOT_SET" and drm_system_ids != "NOT_SET":
-                destination = f"s3://{event["out_s3_bucket"]}/Shows/{Title}/{Season}/{EpisodeNumber}_{EpisodeName}_{event["original_data"]["Episode SKU"]}/output/hls/index"
+                destination = f"s3://{event["out_s3_bucket"]}/Shows/{Title}/{Season}/{EpisodeNumber}_{EpisodeName}_{event["original_data"]["Episode SKU"]}/output/cmaf/index"
             else:
-                destination = f"s3://{event["out_s3_bucket"]}/Shows/{Title}/{Season}/{EpisodeNumber}_{EpisodeName}/output/hls/index"
+                destination = f"s3://{event["out_s3_bucket"]}/Shows/{Title}/{Season}/{EpisodeNumber}_{EpisodeName}/output/cmaf/index"
             resource_id = f"{event["original_data"]["Episode SKU"]}"
 
         variables = {
@@ -253,7 +257,7 @@ def lambda_handler(event, context):
             "destination": destination
         }
 
-        with open('templates/job-template.json', 'r') as f:
+        with open('templates/job-template-cmaf.json', 'r') as f:
             template_content = f.read()
 
         template = Template(template_content)

@@ -1,0 +1,125 @@
+{
+    "Queue": "{{ mediaconvert_queue }}",
+    "Role": "{{ mediaconvert_role }}",
+    "UserMetadata": {},
+    "Settings": {
+        "OutputGroups": [
+            {
+                "CustomName": "CMAF_GROUP",
+                "Name": "CMAF",
+                "Outputs": [
+                    {
+                        "ContainerSettings": {
+                            "Container": "CMFC"
+                        },
+                        "VideoDescription": {
+                            "Width": 1920,
+                            "Height": 1080,
+                            "CodecSettings": {
+                                "Codec": "H_264",
+                                "H264Settings": {
+                                    "MaxBitrate": 5000000,
+                                    "RateControlMode": "QVBR",
+                                    "QvbrSettings": {
+                                        "QvbrQualityLevel": 8
+                                    },
+                                    "SceneChangeDetect": "TRANSITION_DETECTION"
+                                }
+                            }
+                        },
+                        "NameModifier": "_1080p"
+                    },
+                    {
+                        "ContainerSettings": {
+                            "Container": "CMFC"
+                        },
+                        "VideoDescription": {
+                            "Width": 1280,
+                            "Height": 720,
+                            "CodecSettings": {
+                                "Codec": "H_264",
+                                "H264Settings": {
+                                    "MaxBitrate": 3000000,
+                                    "RateControlMode": "QVBR",
+                                    "QvbrSettings": {
+                                        "QvbrQualityLevel": 7
+                                    },
+                                    "SceneChangeDetect": "TRANSITION_DETECTION"
+                                }
+                            }
+                        },
+                        "NameModifier": "_720p"
+                    },
+                    {
+                        "ContainerSettings": {
+                            "Container": "CMFC"
+                        },
+                        "VideoDescription": {
+                            "Width": 854,
+                            "Height": 480,
+                            "CodecSettings": {
+                                "Codec": "H_264",
+                                "H264Settings": {
+                                    "MaxBitrate": 1000000,
+                                    "RateControlMode": "QVBR",
+                                    "QvbrSettings": {
+                                        "QvbrQualityLevel": 6
+                                    },
+                                    "SceneChangeDetect": "TRANSITION_DETECTION"
+                                }
+                            }
+                        },
+                        "NameModifier": "_480p"
+                    },
+                    {
+                        "ContainerSettings": {
+                            "Container": "CMFC"
+                        },
+                        "AudioDescriptions": [
+                            {
+                                "AudioSourceName": "Audio Selector 1",
+                                "CodecSettings": {
+                                    "Codec": "AAC",
+                                    "AacSettings": {
+                                        "RateControlMode": "CBR",
+                                        "CodecProfile": "LC",
+                                        "CodingMode": "CODING_MODE_AUTO",
+                                        "SampleRate": 44100
+                                    }
+                                }
+                            }
+                        ],
+                        "NameModifier": "_audio"
+                    }
+                ],
+                "OutputGroupSettings": {
+                    "Type": "CMAF_GROUP_SETTINGS",
+                    "CmafGroupSettings": {
+                        "WriteHlsManifest": "ENABLED",
+                        "WriteDashManifest": "ENABLED",
+                        "SegmentLength": 6,
+                        "Destination": "{{ destination }}",
+                        "FragmentLength": 2,
+                        "SegmentControl": "SEGMENTED_FILES"
+                    }
+                }
+            }
+        ],
+        "FollowSource": 1,
+        "Inputs": [
+            {
+                "AudioSelectors": {
+                    "Audio Selector 1": {
+                        "Tracks": [
+                            1
+                        ],
+                        "DefaultSelection": "NOT_DEFAULT",
+                        "SelectorType": "TRACK"
+                    }
+                },
+                "CaptionSelectors": {},
+                "FileInput": "s3://{{ input_bucket }}/{{ input_folder }}/{{ input_mp4_file }}"
+            }
+        ]
+    }
+}
