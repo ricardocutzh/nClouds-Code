@@ -5,9 +5,38 @@ module "hls_bucket" {
   hls_segment_expiration_days = local.config.s3_hls.hls_retention_days
   recording_expiration_days   = local.config.s3_hls.recording_retention_days
   cors_allowed_origins        = local.config.s3_hls.cors_origins
-  
-  tags = local.tags
+  cloudfront_distribution_arn = module.cdn.distribution_arn
+
+  tags = {
+    Project     = local.config.tags.Project
+  }
 }
+
+module "cdn" {
+    source = "./modules/tf-cloudfront"
+    bucket_regional_domain_name = module.hls_bucket.bucket_regional_domain_name
+    bucket_arn = module.hls_bucket.bucket_arn
+    cache_default_ttl = local.config.cloudfront.cache_default_ttl
+    cache_min_ttl = local.config.cloudfront.cache_min_ttl
+    cache_max_ttl = local.config.cloudfront.cache_max_ttl
+
+    identifier = local.identifier
+    price_class = local.config.cloudfront.price_class
+    tags = {
+      Project = local.config.tags.Project
+    }
+}
+
+output "hls_bucket_name" {
+  description = "HLS bucket name. Should be used in Livego upload target."
+  value       = module.hls_bucket.bucket_id
+}
+
+output "stream_url_template" {
+  description = "Base URL to test the stream."
+  value       = "https://${module.cdn.distribution_domain_name}/live/{stream-id}/index.m3u8"
+}
+  
 
 module "live_go_launch_template" {
   source = "./modules/tf-launch-template"
