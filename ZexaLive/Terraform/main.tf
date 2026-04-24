@@ -42,7 +42,8 @@ module "live_go_launch_template" {
   source = "./modules/tf-launch-template"
 
   identifier = local.identifier
-  user_data  = local.config.server_config.user_data
+  # user_data  = local.config.server_config.user_data
+  user_data  = yamldecode(templatefile("${path.module}/templates/${local.config.server_config.user_data1}", {}))
   volume_size = local.config.server_config.volume_size
   volume_type = local.config.server_config.volume_type
   monitoring_enabled = local.config.server_config.monitoring_enabled

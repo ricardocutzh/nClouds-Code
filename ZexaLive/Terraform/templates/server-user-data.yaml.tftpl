@@ -1,0 +1,447 @@
+package_update: true
+package_upgrade: true
+write_files:
+  - path: /opt/livego/Server/config.yaml
+    owner: root:root
+    permissions: '0644'
+    content: |
+        level: debug
+        redis_addr: redis:6379
+        redis_pwd: ""
+        server:
+            - appname: Zexa
+              live: true
+              hls: true
+              api: true
+              flv: false
+
+  - path: /opt/livego/Server/server.Dockerfile
+    owner: root:root
+    permissions: '0644'
+    content: |
+        FROM gwuhaolin/livego
+
+        RUN mkdir -p /mnt/hls
+
+        RUN mkdir /hls
+
+        RUN chmod -R 777 /hls
+
+        RUN chmod -R 777 /app
+
+        COPY config.yaml /app/livego.yaml
+
+  - path: /opt/livego/Dashboard/dashboard.Dockerfile
+    owner: root:root
+    permissions: '0644'
+    content: |
+        FROM node:18-alpine
+        WORKDIR /app
+        COPY package*.json ./
+        RUN npm install
+        COPY . .
+        EXPOSE 3000
+        CMD ["node", "server.js"]
+
+  - path: /opt/livego//Dashboard/package.json
+    owner: root:root
+    permissions: '0644'
+    content: |
+      {
+        "name": "livego-dashboard",
+        "version": "1.0.0",
+        "description": "Dashboard for LiveGo",
+        "main": "server.js",
+        "dependencies": {
+          "axios": "^1.4.0",
+          "express": "^4.18.2"
+        }
+      }
+
+  - path: /opt/livego//Dashboard/server.js
+    owner: root:root
+    permissions: '0644'
+    content: |
+      const express = require('express');
+      const axios = require('axios');
+      const path = require('path');
+      const app = express();
+      const PORT = 3000;
+
+      app.use(express.static('public'));
+
+      // Proxy endpoint to talk to LiveGo
+      app.get('/api/stats', async (req, res) => {
+          try {
+              const livegoIp = req.query.ip;
+              const response = await axios.get(`http://livego:8090/stat/livestat`);
+              res.json(response.data);
+          } catch (error) {
+              res.status(500).json({ error: "Could not connect to LiveGo" });
+          }
+      });
+
+      app.get('/api/control/get', async (req, res) => {
+          try {
+              const { ip, room } = req.query;
+              const response = await axios.get(`http://livego:8090/control/get?room=$${room}`);
+              res.json(response.data);
+          } catch (error) {
+              res.status(500).json({ error: "Failed to create/get room" });
+          }
+      });
+
+      // Delete a Room
+      app.get('/api/control/delete', async (req, res) => {
+          try {
+              const { ip, room } = req.query;
+              const response = await axios.get(`http://livego:8090/control/delete?room=$${room}`);
+              res.json(response.data);
+          } catch (error) {
+              res.status(500).json({ error: "Failed to delete room" });
+          }
+      });
+
+      app.listen(PORT, () => console.log(`Dashboard running on http://localhost:3000`));
+
+  - path: /opt/livego//Dashboard/public/index.html
+    owner: root:root
+    permissions: '0644'
+    content: |
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>LiveGo Ultimate Dashboard</title>
+          <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+          <style>
+              :root {
+                  --bg-color: #0d1117;
+                  --card-bg: #161b22;
+                  --border-color: #30363d;
+                  --accent-color: #58a6ff;
+                  --success-color: #238636;
+                  --danger-color: #da3633;
+                  --text-main: #c9d1d9;
+              }
+
+              body {
+                  background-color: var(--bg-color);
+                  color: var(--text-main);
+                  font-family: 'Inter', sans-serif;
+                  padding-top: 2rem;
+              }
+
+              .card {
+                  background-color: var(--card-bg);
+                  border: 1px solid var(--border-color);
+                  border-radius: 8px;
+                  color: var(--text-main);
+                  margin-bottom: 1.5rem;
+              }
+
+              .form-control {
+                  background-color: #010409;
+                  border: 1px solid var(--border-color);
+                  color: white;
+              }
+
+              .form-control:focus {
+                  background-color: #010409;
+                  border-color: var(--accent-color);
+                  color: white;
+                  box-shadow: none;
+              }
+
+              code {
+                  font-family: 'JetBrains Mono', monospace;
+                  background: #000;
+                  padding: 2px 6px;
+                  border-radius: 4px;
+                  color: #ff7b72;
+              }
+
+              .status-dot {
+                  height: 10px;
+                  width: 10px;
+                  background-color: #8b949e;
+                  border-radius: 50%;
+                  display: inline-block;
+                  margin-right: 8px;
+              }
+
+              .status-live {
+                  background-color: #3fb950;
+                  box-shadow: 0 0 10px #238636;
+              }
+
+              .btn-copy {
+                  padding: 0px 8px;
+                  font-size: 0.8rem;
+              }
+
+              .refresh-indicator {
+                  font-size: 0.8rem;
+                  color: #8b949e;
+              }
+          </style>
+      </head>
+      <body>
+
+      <div class="container">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+              <div>
+                  <h1 class="h3 mb-0">📡 LiveGo Monitor</h1>
+                  <p class="refresh-indicator mb-0" id="lastUpdated">Initializing...</p>
+              </div>
+              <div class="d-flex align-items-center gap-3">
+                  <label class="text-nowrap">Server IP:</label>
+                  <input type="text" id="serverIp" class="form-control w-auto" value="livego">
+                  <button onclick="fetchStats()" class="btn btn-outline-light">🔄</button>
+              </div>
+          </div>
+
+          <div class="row">
+              <div class="col-lg-8">
+                  <div class="card p-4">
+                      <h5 class="mb-3">Room Management</h5>
+                      <div class="input-group">
+                          <input type="text" id="roomName" class="form-control" placeholder="Enter Room Name (e.g., movie_1)">
+                          <button class="btn btn-success" onclick="manageRoom('get')">Get Key</button>
+                          <button class="btn btn-outline-danger" onclick="manageRoom('delete')">Delete Room</button>
+                      </div>
+
+                      <div id="resultContainer" class="mt-3 p-3 bg-black rounded d-none">
+                          <div class="d-flex justify-content-between align-items-center">
+                              <div>
+                                  <small class="text-muted d-block">Stream Key:</small>
+                                  <code id="resultText"></code>
+                              </div>
+                              <button class="btn btn-sm btn-secondary btn-copy" onclick="copyKey()">Copy</button>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+
+              <div class="col-lg-4">
+                  <div class="card p-3 text-center h-100">
+                      <div class="row m-0 h-100 align-items-center">
+                          <div class="col-6 border-end border-secondary">
+                              <small class="text-muted">Publishers</small>
+                              <h2 id="pubCount" class="mb-0">0</h2>
+                          </div>
+                          <div class="col-6">
+                              <small class="text-muted">Players</small>
+                              <h2 id="playCount" class="mb-0">0</h2>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+
+          <div class="card mt-2">
+              <div class="card-header border-bottom border-secondary d-flex justify-content-between">
+                  <h5 class="mb-0 py-1">Active Publishers (Consult)</h5>
+              </div>
+              <div class="table-responsive">
+                  <table class="table table-dark table-hover mb-0">
+                      <thead>
+                          <tr>
+                              <th>Stream Path / Key</th>
+                              <th>Video Sent</th>
+                              <th>Audio Sent</th>
+                              <th>Status</th>
+                              <th class="text-end">Actions</th>
+                          </tr>
+                      </thead>
+                      <tbody id="statTable">
+                          <tr><td colspan="5" class="text-center py-4 text-muted">No active streams detected.</td></tr>
+                      </tbody>
+                  </table>
+              </div>
+          </div>
+      </div>
+
+      <script>
+          const serverIpInput = document.getElementById('serverIp');
+          const resultContainer = document.getElementById('resultContainer');
+          const resultText = document.getElementById('resultText');
+
+          // --- Control API: Get/Delete ---
+          async function manageRoom(action) {
+              const room = document.getElementById('roomName').value.trim();
+              const ip = serverIpInput.value;
+
+              if (!room) {
+                  alert("Please provide a room name.");
+                  return;
+              }
+
+              try {
+                  const res = await fetch(`/api/control/$${action}?ip=$${ip}&room=$${room}`);
+                  const json = await res.json();
+                  
+                  if (action === 'get') {
+                      resultContainer.classList.remove('d-none');
+                      resultText.innerText = json.data;
+                  } else {
+                      alert(`Room "$${room}" deleted successfully.`);
+                      resultContainer.classList.add('d-none');
+                      fetchStats();
+                  }
+              } catch (e) {
+                  alert("API Error: Check if server is running and IP is correct.");
+              }
+          }
+
+          // --- Stats API: Consult ---
+          async function fetchStats() {
+              const ip = serverIpInput.value;
+              try {
+                  const res = await fetch(`/api/stats?ip=$${ip}`);
+                  const json = await res.json();
+                  render(json.data);
+                  document.getElementById('lastUpdated').innerText = `Last updated: $${new Date().toLocaleTimeString()}`;
+              } catch (e) {
+                  console.error("Stats fetch failed");
+                  document.getElementById('lastUpdated').innerText = "Update failed. Check connection.";
+              }
+          }
+
+          function render(data) {
+              const publishers = data.publishers || [];
+              const players = data.players || [];
+              
+              document.getElementById('pubCount').innerText = publishers.length;
+              document.getElementById('playCount').innerText = players.length;
+
+              const table = document.getElementById('statTable');
+              
+              if (publishers.length === 0) {
+                  table.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No active streams detected.</td></tr>';
+                  return;
+              }
+
+              table.innerHTML = publishers.map(p => {
+                  // LiveGo keys look like "live/KEY_NAME", let's extract the key name for the delete action
+                  const roomName = p.key.split('/').pop();
+                  return `
+                      <tr>
+                          <td><code>$${p.key}</code></td>
+                          <td>$${(p.video_total_bytes / 1024 / 1024).toFixed(2)} MB</td>
+                          <td>$${(p.audio_total_bytes / 1024 / 1024).toFixed(2)} MB</td>
+                          <td><span class="status-dot status-live"></span> Live</td>
+                          <td class="text-end">
+                              <button class="btn btn-sm btn-danger" onclick="killStream('$${roomName}')">Kill Room</button>
+                          </td>
+                      </tr>
+                  `;
+              }).join('');
+          }
+
+          async function killStream(room) {
+              if(confirm(`Are you sure you want to stop the stream for room: $${room}?`)) {
+                  document.getElementById('roomName').value = room;
+                  await manageRoom('delete');
+              }
+          }
+
+          function copyKey() {
+              const key = resultText.innerText;
+              navigator.clipboard.writeText(key);
+              const copyBtn = document.querySelector('.btn-copy');
+              copyBtn.innerText = "Copied!";
+              copyBtn.classList.replace('btn-secondary', 'btn-success');
+              setTimeout(() => {
+                  copyBtn.innerText = "Copy";
+                  copyBtn.classList.replace('btn-success', 'btn-secondary');
+              }, 2000);
+          }
+
+          // Auto-Refresh Logic
+          setInterval(fetchStats, 10000); // 10 Seconds
+          fetchStats(); // Initial Load
+      </script>
+
+      </body>
+      </html>
+    
+  - path: /opt/livego/docker-compose.yml
+    owner: root:root
+    permissions: '0644'
+    content: |
+      services:
+        dashboard:
+            build:
+                context: ./Dashboard
+                dockerfile: dashboard.Dockerfile
+            container_name: livego-dashboard
+            ports:
+                - "3000:3000"
+            restart: always
+            logging:
+                driver: "json-file"
+                options:
+                    max-size: "10m"
+                    max-file: "3"
+
+        livego:
+            build:
+                context: ./Server
+                dockerfile: server.Dockerfile
+            container_name: livego_server
+            command: ["--hls_keep_after_end"]
+            restart: always
+            ports:
+                - "1935:1935"
+                - "8090:8090"
+                - "7001:7001"
+                - "7002:7002"
+            logging:
+                driver: "json-file"
+                options:
+                    max-size: "10m"
+                    max-file: "3"
+        redis:
+            image: redis:alpine
+            container_name: redis_server
+            restart: always
+            ports:
+                - "6379:6379"
+            logging:
+                driver: "json-file"
+                options:
+                    max-size: "10m"
+                    max-file: "3"
+
+        redis-monitor:
+            image: rediscommander/redis-commander:latest
+            container_name: redis-commander
+            restart: always
+            environment:
+                - REDIS_HOSTS=local:redis:6379
+            ports:
+                - "8081:8081"
+            depends_on:
+                - redis
+packages:
+  - docker
+runcmd:
+    - sudo curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/tmp/awscliv2.zip"
+    - sudo unzip -q /tmp/awscliv2.zip -d /tmp
+    - sudo /tmp/aws/install --update
+    - sudo rm -rf /tmp/aws /tmp/awscliv2.zip
+    - sudo systemctl start docker
+    - ARCH=$(uname -m)
+    - if [ "$ARCH" = "x86_64" ]; then ARCH="amd64"; elif [ "$ARCH" = "aarch64" ]; then ARCH="arm64"; fi
+    - sudo mkdir -p /root/.docker/cli-plugins/
+    - sudo curl -SL "https://github.com/docker/buildx/releases/download/v0.17.0/buildx-v0.17.0.linux-$${ARCH}" -o /root/.docker/cli-plugins/docker-buildx
+    - sudo chmod +x /root/.docker/cli-plugins/docker-buildx
+    - sudo docker buildx version
+    - sudo mkdir -p /usr/libexec/docker/cli-plugins && sudo curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-$(uname -m) -o /usr/libexec/docker/cli-plugins/docker-compose
+    - sudo chmod +x /usr/libexec/docker/cli-plugins/docker-compose
+    - sudo /usr/libexec/docker/cli-plugins/docker-compose --version
+    - cd /opt/livego && sudo /usr/libexec/docker/cli-plugins/docker-compose up -d
+    - sudo dnf install amazon-cloudwatch-agent -y

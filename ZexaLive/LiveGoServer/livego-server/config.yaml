@@ -1,0 +1,22 @@
+level: trace
+redis_addr: redis:6379
+redis_pwd: ""
+server:
+  - appname: nClouds1
+    live: true
+    hls: true
+    hls_path: /tmp/hls
+    api: true
+    flv: false
+
+  - appname: nClouds2
+    live: true
+    hls: true
+    api: true
+    flv: false
+
+  - appname: nClouds2
+    live: true
+    hls: true
+    api: true
+    flv: false
