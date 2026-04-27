@@ -306,3 +306,10 @@ Target (SOW):      ≤ 20 seconds
 **Note:** S3 Files may not be suitable as the write path for live HLS segments. The recommended alternative for the live streaming use case is writing directly to S3 via the AWS SDK (`s3:PutObject`), which has millisecond write latency.
 
 S3 Files remains useful in this project for post-event recording access, where the ~1 minute delay is acceptable and the ability to browse recordings as a file system from the EC2 has operational value.
+
+## Important References:
+* https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-files.html
+* https://aws.amazon.com/blogs/aws/launching-s3-files-making-s3-buckets-accessible-as-file-systems/
+* https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3files_file_system
+* https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-files-security-iam-awsmanpol.html
+* https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-files-synchronization.html
