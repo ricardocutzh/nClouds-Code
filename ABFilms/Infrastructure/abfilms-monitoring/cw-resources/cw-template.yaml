@@ -1,0 +1,67 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Direct Alarm-to-Lambda Notification Pipeline
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+  Identifier:
+    Type: String
+    Description: Unique identifier for naming resources
+  EmailAddress:
+    Type: String
+    Description: Destination email for formatted alerts
+
+Conditions:
+  IsProd: !Equals [!Ref Environment, "prod"]
+
+Resources:
+
+  AlarmFormatterLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "abfilms-${Identifier}-${Environment}-alarm-formatter/logs"
+      RetentionInDays: !If [IsProd, 90, 7]
+
+  # 1. DISTRIBUTION SNS TOPIC (The only SNS topic now)
+  FormattedAlertTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "abfilms-${Identifier}-${Environment}-email-alerts"
+      Subscription:
+        - Endpoint: !Ref EmailAddress
+          Protocol: email
+
+  # 2. ALARM FORMATTER LAMBDA
+  AlarmFormatterFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "abfilms-${Identifier}-${Environment}-alarm-formatter"
+      Handler: main.lambda_handler
+      Runtime: python3.13
+      CodeUri: src/notifications-formatter/
+      LoggingConfig:
+        LogGroup: !Ref AlarmFormatterLogGroup
+      Environment:
+        Variables:
+          DISTRIBUTION_TOPIC_ARN: !Ref FormattedAlertTopic
+      Policies:
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt FormattedAlertTopic.TopicName
+
+  PermissionForAlarmToInvokeLambda:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref AlarmFormatterFunction
+      Action: "lambda:InvokeFunction"
+      Principal: "lambda.alarms.cloudwatch.amazonaws.com"
+
+Outputs:
+  AlarmFormatterLambdaArn:
+    Description: ARN of the Lambda to set as the 'Action' in your CloudWatch Alarms
+    Value: !GetAtt AlarmFormatterFunction.Arn
+
+  FormattedAlertTopicArn:
+    Description: ARN of the topic that sends emails
+    Value: !Ref FormattedAlertTopic
