@@ -35,3 +35,8 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "ec2_role_name" {
+  description = "Name of the IAM role attached to EC2 instances. Needed to attach the S3 read policy."
+  type        = string
+}

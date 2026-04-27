@@ -71,6 +71,7 @@ module "s3_files" {
   bucket_arn = module.hls_bucket.bucket_arn
   subnet_ids = module.vpc[0].public_subnets
   ec2_role_arn = aws_iam_role.ec2_role.arn
+  ec2_role_name = aws_iam_role.ec2_role.name 
 
   security_group_ids = [module.vpc_sgs["server"].security_group_id]
   tags = local.tags

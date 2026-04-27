@@ -27,6 +27,29 @@ resource "aws_iam_role" "s3files_service" {
   tags = var.tags
 }
 
+# necessary permissions for s3 read 
+resource "aws_iam_role_policy" "ec2_s3_read" {
+  name = "${var.identifier}-ec2-s3-read-policy"
+  role = var.ec2_role_name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid    = "S3ObjectReadAccess"
+      Effect = "Allow"
+      Action = [
+        "s3:GetObject",
+        "s3:GetObjectVersion",
+        "s3:ListBucket"
+      ]
+      Resource = [
+        var.bucket_arn,
+        "${var.bucket_arn}/*"
+      ]
+    }]
+  })
+}
+
 # policies necesarry when creating a s3 file system
 resource "aws_iam_role_policy" "s3files_service" {
   name = "${var.identifier}-s3files-service-policy"
