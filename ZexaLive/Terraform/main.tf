@@ -64,6 +64,22 @@ module "live_go_asg" {
   tags = local.tags
 }
 
+module "s3_files" {
+  source ="./modules/tf-s3-files"
+  identifier = local.identifier
+  region = local.config.region
+  bucket_arn = module.hls_bucket.bucket_arn
+  subnet_ids = module.vpc[0].public_subnets
+  ec2_role_arn = aws_iam_role.ec2_role.arn
+
+  security_group_ids = [module.vpc_sgs["server"].security_group_id]
+  tags = local.tags
+}
+
+output "mount_command" {
+  description = "Command to mount S3 Files on EC2. Add to launch template user data."
+  value       = module.s3_files.mount_command
+}
 
 # TODO: Enable when the ASG resource is merged
 # module "monitoring" {
