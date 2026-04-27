@@ -13,19 +13,6 @@ S3 Files is an AWS feature launched in April 2026 that exposes an S3 bucket as a
 
 The primary use case is **read access**: applications that cannot use the S3 SDK directly, can read objects from S3 as if they were local files. The file system also supports writes, but export synchronization back to S3 has a latency of approximately 1 minute (as of the initial tests), which makes it not very reliable for fast writing fastly to s3.
 
-### S3 Files vs S3 API
-
-```
-S3 API                              S3 Files
-──────────────────────────────      ────────────────────────────────
-Requires SDK code                   Works with any file operation
-s3.get_object(Bucket=..., Key=...)  open('/mnt/s3files/file.txt')
-Explicit per-object calls           Transparent to the application
-No caching                          Caches frequently read data
-Best for: known objects             Best for: browsing, exploration,
-                                    legacy apps, ML frameworks
-```
-
 ---
 
 ## Architecture
