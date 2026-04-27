@@ -79,8 +79,13 @@ Parameters:
     Type: String
     Default: "False"
 
+  MonitoringLambdaAlarmActionArn:
+    Type: String
+    Default: "NOT_SET"
+
 Conditions:
   IsDev: !Equals [!Ref Environment, "dev"]
+  CreateAlarms: !Not [!Equals [!Ref MonitoringLambdaAlarmActionArn, "NOT_SET"]]
 
 Resources:
 
@@ -436,6 +441,18 @@ Resources:
                   key:
                     - wildcard: "*.csv"
 
+  S3IngestUploadTriggerAlarms:
+    Type: AWS::Serverless::Application
+    Condition: CreateAlarms
+    Properties:
+      Location: ./alarms/lambda.yaml
+      Parameters:
+        Environment: !Ref Environment
+        Identifier: !Ref Identifier
+        AlarmSuffix: vod-ingest-trigger
+        LambdaName: !Ref S3IngestUploadTrigger
+        AlarmActionArn: !Ref MonitoringLambdaAlarmActionArn
+        AlarmDescription: "Alarms for the Lambda function that triggers the ABFilms pipelines when new CSV files are uploaded to S3, indicating potential issues with the ingestion process."
 
 Outputs:
   S3IngestUploadTriggerArn:

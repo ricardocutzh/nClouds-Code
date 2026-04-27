@@ -14,8 +14,13 @@ Parameters:
   DRMSecretName:
     Type: String
 
+  MonitoringLambdaAlarmActionArn:
+    Type: String
+    Default: "NOT_SET"
+
 Conditions:
   IsProd: !Equals [!Ref Environment, "prod"]
+  CreateAlarms: !Not [!Equals [!Ref MonitoringLambdaAlarmActionArn, "NOT_SET"]]
 
 Resources:
 
@@ -66,6 +71,20 @@ Resources:
             Path: /token
             Method: post
             RestApiId: !Ref JwtApi
+
+  JwtGeneratorAlarms:
+    Type: AWS::Serverless::Application
+    Condition: CreateAlarms
+    Properties:
+      Location: ./alarms/lambda.yaml
+      Parameters:
+        Environment: !Ref Environment
+        Identifier: !Ref Identifier
+        AlarmSuffix: drm-token-generator
+        LambdaName: !Ref JwtGeneratorFunction
+        AlarmActionArn: !Ref MonitoringLambdaAlarmActionArn
+        AlarmDescription: "Alarms for the Lambda function that generates DRM tokens, indicating potential issues with the token generation process."
+
 
 Outputs:
   ApiUrl:
