@@ -41,6 +41,7 @@ server_config:
   max_instances: 0
   min_instances: 0
   instance_type: "t3.large"
+  user_data1: server-user-data.yaml.tftpl
   user_data:
     package_update: true
     package_upgrade: true
@@ -76,7 +77,9 @@ server_config:
       - sudo mkdir -p /usr/libexec/docker/cli-plugins && sudo curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-$(uname -m) -o /usr/libexec/docker/cli-plugins/docker-compose
       - sudo chmod +x /usr/libexec/docker/cli-plugins/docker-compose
       - sudo /usr/libexec/docker/cli-plugins/docker-compose --version
-      - cd /opt/livego && /usr/libexec/docker/cli-plugins/docker-compose up -d
+      - cd /opt/livego && /usr/libexec/docker/cli-plugins/docker-compose build && /usr/libexec/docker/cli-plugins/docker-compose up -d
+      - sudo dnf install amazon-cloudwatch-agent -y
+
 monitoring_config:
   instance_id: null
   instance_name: LiveGo
