@@ -1,5 +1,7 @@
 {
     "Identifier": "vod-monitoring",
     "Environment": "prod",
-    "SlackWebHookUrl": "prod/abfilms-vod-pipeline/monitoring/slack-webhook"
+    "SlackWebHookUrl": "prod/abfilms-vod-pipeline/monitoring/slack-webhook",
+    "EmailAddress1": "ricardo@nclouds.com",
+    "NotifyViaEmail": "False"
 }

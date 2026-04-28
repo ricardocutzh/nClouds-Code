@@ -65,6 +65,8 @@ module "vpc_sgs" {
 
   ingress_with_cidr_blocks = local.sg_groups_info[each.value].ingres
 
+  ingress_with_self = lookup(local.sg_groups_info[each.value], "ingress_self", [])
+
   egress_with_cidr_blocks = local.sg_groups_info[each.value].egress
 
   tags = local.tags

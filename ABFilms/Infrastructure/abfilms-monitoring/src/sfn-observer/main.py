@@ -2,6 +2,8 @@ import json
 import logging
 import urllib3
 import os
+import boto3
+sns_client = boto3.client('sns')
 
 # Initialize logging
 logger = logging.getLogger()
@@ -9,6 +11,24 @@ logger.setLevel(logging.INFO)
 
 # Slack Webhook URL from Environment Variables
 SLACK_WEBHOOK_URL = os.environ.get('SLACK_WEBHOOK_URL')
+SNS_TOPIC_ARN = os.environ.get('SNS_TOPIC_ARN')
+NOTIFY_VIA_EMAIL = os.environ.get('NOTIFY_VIA_EMAIL')
+
+def send_sns_notification(subject, message):
+    """Internal helper to send notifications to SNS."""
+    if not SNS_TOPIC_ARN:
+        logger.error("SNS_TOPIC_ARN is not configured in environment variables.")
+        return None
+    try:
+        response = sns_client.publish(
+            TopicArn=SNS_TOPIC_ARN,
+            Subject=subject,
+            Message=message
+        )
+        return response
+    except Exception as e:
+        logger.error(f"Error sending SNS notification: {e}")
+        return None
 
 def send_slack_payload(payload):
     """Internal helper to send the formatted JSON to Slack."""
@@ -84,6 +104,8 @@ def status_succeeded(detail):
             ]
         }]
     }
+    if NOTIFY_VIA_EMAIL == "True":
+        send_sns_notification(f"✅ {prog_type.upper()} Pipeline Succeeded", info_text)
     return send_slack_payload(payload)
 
 def status_failed(detail):
@@ -131,6 +153,8 @@ def status_failed(detail):
             ]
         }]
     }
+    if NOTIFY_VIA_EMAIL == "True":
+        send_sns_notification(f"❌ {prog_type.upper()} Pipeline Failed", f"Asset: {title}\nType: {prog_type}\nError: {error_name}\nCause: {cause}")
     return send_slack_payload(payload)
 
 def lambda_handler(event, context):

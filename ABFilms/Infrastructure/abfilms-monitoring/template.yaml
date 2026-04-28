@@ -11,6 +11,14 @@ Parameters:
   SlackWebHookUrl:
     Type: String
 
+  EmailAddress1:
+    Type: String
+
+  NotifyViaEmail:
+    Type: String
+    AllowedValues: ["True", "False"]
+    Default: "False"
+
 Conditions:
   IsProd: !Equals [!Ref Environment, "prod"]
 
@@ -21,6 +29,14 @@ Resources:
     Properties:
       LogGroupName: !Sub "abfilms-shows-${Identifier}-${Environment}-observer/logs"
       RetentionInDays: !If [IsProd, 90, 7]
+
+  StateMachineOberserverEmailNotifications:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub "abfilms-${Identifier}-${Environment}-observer-topic"
+      Subscription:
+        - Endpoint: !Ref EmailAddress1
+          Protocol: email
 
   StateMachineObserverFunction:
     Type: AWS::Serverless::Function
@@ -34,8 +50,16 @@ Resources:
       Environment:
         Variables:
           SLACK_WEBHOOK_URL: !Sub "{{resolve:secretsmanager:${SlackWebHookUrl}:SecretString::AWSCURRENT}}"
+          SNS_TOPIC_ARN: !Ref StateMachineOberserverEmailNotifications
+          NOTIFY_VIA_EMAIL: !Ref NotifyViaEmail
       Policies:
         - CloudWatchPutMetricPolicy: {}
+        - Statement:
+          - Effect: Allow
+            Action:
+            - sns:Publish
+            Resource: 
+            - !Ref StateMachineOberserverEmailNotifications
 
 
   StateMachineEventRule:
@@ -59,3 +83,63 @@ Resources:
       Action: "lambda:InvokeFunction"
       Principal: "events.amazonaws.com"
       SourceArn: !GetAtt StateMachineEventRule.Arn
+
+  PipelineDebugDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: !Sub "abfilms-${Identifier}-${Environment}-Pipeline-Debug"
+      DashboardBody: !Sub 
+        - |
+          {
+            "widgets": [
+              {
+                "type": "text", "width": 24, "height": 1, "properties": { "markdown": "# 🛠️ Debugging: Step Functions (State Machines)" }
+              },
+              {
+                "type": "metric", "width": 12, "height": 6, "properties": {
+                  "metrics": [
+                    [ { "expression": "SEARCH('{AWS/States,StateMachineArn} MetricName=\"ExecutionsFailed\" StateMachineArn=abfilms-${Identifier}-${Environment}', 'Sum', 60)", "id": "sf_fail", "label": "FAILED Executions", "color": "#d62728" } ],
+                    [ { "expression": "SEARCH('{AWS/States,StateMachineArn} MetricName=\"ExecutionsAborted\" StateMachineArn=abfilms-${Identifier}-${Environment}', 'Sum', 60)", "id": "sf_abort", "label": "ABORTED Executions", "color": "#ff7f0e" } ]
+                  ],
+                  "view": "timeSeries", "stacked": false, "region": "${AWS::Region}", "title": "Failures & Aborts (Real-time)"
+                }
+              },
+              {
+                "type": "metric", "width": 12, "height": 6, "properties": {
+                  "metrics": [
+                    [ { "expression": "SEARCH('{AWS/States,StateMachineArn} MetricName=\"ExecutionTime\" StateMachineArn=abfilms-${Identifier}-${Environment}', 'Average', 60)", "id": "sf_time", "label": "Avg Duration (ms)" } ]
+                  ],
+                  "view": "timeSeries", "region": "${AWS::Region}", "title": "Execution Latency (Is the process slowing down?)"
+                }
+              },
+              {
+                "type": "text", "width": 24, "height": 1, "properties": { "markdown": "# 🎬 Debugging: MediaConvert Queues" }
+              },
+              {
+                "type": "metric", "width": 12, "height": 6, "properties": {
+                  "metrics": [
+                    [ { "expression": "SEARCH('{AWS/MediaConvert,Queue} MetricName=\"JobsErroredCount\"', 'Sum', 60)", "id": "mc_err", "label": "Errored Jobs", "color": "#d62728" } ]
+                  ],
+                  "view": "timeSeries", "region": "${AWS::Region}", "title": "MediaConvert Error Rate"
+                }
+              },
+              {
+                "type": "metric", "width": 12, "height": 6, "properties": {
+                  "metrics": [
+                    [ { "expression": "SEARCH('{AWS/MediaConvert,Queue} MetricName=\"StandbyTime\"', 'Average', 60)", "id": "mc_wait", "label": "Avg Wait Time (sec)" } ]
+                  ],
+                  "view": "timeSeries", "region": "${AWS::Region}", "title": "Queue Bottlenecks (Standby Time)"
+                }
+              },
+              {
+                "type": "metric", "width": 24, "height": 6, "properties": {
+                  "metrics": [
+                    [ "AWS/MediaConvert", "JobsCompletedCount", { "stat": "Sum", "label": "Completed" } ],
+                    [ ".", "JobsErroredCount", { "stat": "Sum", "label": "Errored" } ]
+                  ],
+                  "period": 60, "region": "${AWS::Region}", "title": "Job Throughput (Success vs Failure)", "view": "bar"
+                }
+              }
+            ]
+          }
+        - { Identifier: !Ref Identifier, Environment: !Ref Environment }
