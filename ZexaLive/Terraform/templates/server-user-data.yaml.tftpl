@@ -434,14 +434,15 @@ runcmd:
     - sudo /tmp/aws/install --update
     - sudo rm -rf /tmp/aws /tmp/awscliv2.zip
     - sudo systemctl start docker
-    - ARCH=$(uname -m)
-    - if [ "$ARCH" = "x86_64" ]; then ARCH="amd64"; elif [ "$ARCH" = "aarch64" ]; then ARCH="arm64"; fi
-    - sudo mkdir -p /root/.docker/cli-plugins/
-    - sudo curl -SL "https://github.com/docker/buildx/releases/download/v0.17.0/buildx-v0.17.0.linux-$${ARCH}" -o /root/.docker/cli-plugins/docker-buildx
-    - sudo chmod +x /root/.docker/cli-plugins/docker-buildx
-    - sudo docker buildx version
-    - sudo mkdir -p /usr/libexec/docker/cli-plugins && sudo curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-$(uname -m) -o /usr/libexec/docker/cli-plugins/docker-compose
-    - sudo chmod +x /usr/libexec/docker/cli-plugins/docker-compose
-    - sudo /usr/libexec/docker/cli-plugins/docker-compose --version
-    - cd /opt/livego && sudo /usr/libexec/docker/cli-plugins/docker-compose up -d
+    #- ARCH=$(uname -m)
+    #- if [ "$ARCH" = "x86_64" ]; then ARCH="amd64"; elif [ "$ARCH" = "aarch64" ]; then ARCH="arm64"; fi
+    #- sudo mkdir -p /root/.docker/cli-plugins/
+    #- sudo curl -SL "https://github.com/docker/buildx/releases/download/v0.17.0/buildx-v0.17.0.linux-$${ARCH}" -o /root/.docker/cli-plugins/docker-buildx
+    #- sudo chmod +x /root/.docker/cli-plugins/docker-buildx
+    #- sudo docker buildx version
+    #- sudo mkdir -p /usr/libexec/docker/cli-plugins && sudo curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-$(uname -m) -o /usr/libexec/docker/cli-plugins/docker-compose
+    #- sudo chmod +x /usr/libexec/docker/cli-plugins/docker-compose
+    #- sudo /usr/libexec/docker/cli-plugins/docker-compose --version
+    # -  cd /opt/livego && sudo /usr/libexec/docker/cli-plugins/docker-compose up -d
+    - cd /tmp && sudo wget https://github.com/gwuhaolin/livego/releases/download/0.0.20/livego_0.0.20_linux_amd64.tar.gz && sudo tar -zxvf livego_0.0.20_linux_amd64.tar.gz && sudo mv livego /usr/local/bin/ && sudo chmod +x /usr/local/bin/livego
     - sudo dnf install amazon-cloudwatch-agent -y
