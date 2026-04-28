@@ -7,6 +7,14 @@ resource "aws_s3_bucket" "hls" {
   })
 }
 
+resource "aws_s3_bucket_versioning" "hls" {
+  bucket = aws_s3_bucket.hls.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
 resource "aws_s3_bucket_ownership_controls" "hls" {
   bucket = aws_s3_bucket.hls.id
 
