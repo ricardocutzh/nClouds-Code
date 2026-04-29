@@ -80,6 +80,7 @@ def lambda_handler(event, context):
         result_key = get_result_key(event)
 
         event["UserMetadata"]["PosterUrl"] = f"{CLOUDFRONT_ENDPOINT}/{result_key}/{event["Original_CSV_Data"]["Key Art 2:3 Filename"]}"
+        event["UserMetadata"]["Thumbnail16_9Url"] = f"{CLOUDFRONT_ENDPOINT}/{result_key}/{event["Original_CSV_Data"]["Key Art 16:9 Filename"]}"
         if event["Original_CSV_Data"]["Trailer"] == "Yes":
             event["UserMetadata"]["TrailerUrl"] = f"{CLOUDFRONT_ENDPOINT}/{result_key}/{event["Original_CSV_Data"]["Trailer Filename"]}"
         return event

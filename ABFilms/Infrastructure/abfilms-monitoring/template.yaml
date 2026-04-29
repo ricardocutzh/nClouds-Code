@@ -14,6 +14,15 @@ Parameters:
   EmailAddress1:
     Type: String
 
+  EmailAddress2:
+    Type: String
+
+  EmailAddress3:
+    Type: String
+
+  EmailAddress4:
+    Type: String
+
   NotifyViaEmail:
     Type: String
     AllowedValues: ["True", "False"]
@@ -45,6 +54,12 @@ Resources:
       TopicName: !Sub "abfilms-${Identifier}-${Environment}-observer-topic"
       Subscription:
         - Endpoint: !Ref EmailAddress1
+          Protocol: email
+        - Endpoint: !Ref EmailAddress2
+          Protocol: email
+        - Endpoint: !Ref EmailAddress3  
+          Protocol: email
+        - Endpoint: !Ref EmailAddress4  
           Protocol: email
 
   StateMachineObserverFunction:
