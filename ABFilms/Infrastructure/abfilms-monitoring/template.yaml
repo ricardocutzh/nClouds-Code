@@ -108,16 +108,13 @@ Resources:
       Principal: "events.amazonaws.com"
       SourceArn: !GetAtt StateMachineEventRule.Arn
 
-  # S3TriggerVODLambdaAlarms:
-  #   Type: AWS::Serverless::Application
-  #   Properties:
-  #     Location: ./alarms/lambda.yaml
-  #     Parameters:
-  #       Environment: !Ref Environment
-  #       Identifier: !Ref Identifier
-  #       AlarmSuffix: vod-s3-trigger
-  #       LambdaName: abfilms-vod-pipeline-prod-s3-trigger
-  #       AlarmActionArn: !GetAtt NotificationStack.Outputs.AlarmFormatterLambdaArn
+  CustomWidgetsLambdas:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ./cw-widgets/widgets.yaml
+      Parameters:
+        Environment: !Ref Environment
+        Identifier: !Ref Identifier
 
 Outputs:
 
