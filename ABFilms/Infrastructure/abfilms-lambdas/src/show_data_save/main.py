@@ -159,6 +159,7 @@ def save_video(data):
     # save the video if episode does not exist in the video table
     # return video_id
     thumbnail = data["UserMetadata"]["PosterUrl"]
+    thumbnail_16_9 = data["UserMetadata"]["Thumbnail16_9Url"]
     video_data = {
         "title": f"{data["Original_CSV_Data"]["Movie/Show Title"]} - Episode {data["Original_CSV_Data"]["Episode Number"]} - {data["Original_CSV_Data"]["Episode Name"]}",
         "description": f"{data["Original_CSV_Data"]["Episode Synopsis"]}",
@@ -181,7 +182,8 @@ def save_video(data):
         "production_company": str(data["Original_CSV_Data"]["Studio"]),
         "genre": f"{data["Original_CSV_Data"]["Genre"]}",
         "is_rentable": True,
-        "rental_price": 4.99
+        "rental_price": 4.99,
+        "thumbnail_16x9": str(thumbnail_16_9)
     }
     
     try:
@@ -288,6 +290,7 @@ def update_series(data, series_id):
 
 def update_videos(data, video_id):
     thumbnail = data["UserMetadata"]["PosterUrl"]
+    thumbnail_16_9 = data["UserMetadata"]["Thumbnail16_9Url"]
     video_data = {
         "title": f"{data["Original_CSV_Data"]["Movie/Show Title"]} - Episode {data["Original_CSV_Data"]["Episode Number"]} - {data["Original_CSV_Data"]["Episode Name"]}",
         "description": f"{data["Original_CSV_Data"]["Episode Synopsis"]}",
@@ -310,7 +313,8 @@ def update_videos(data, video_id):
         "production_company": str(data["Original_CSV_Data"]["Studio"]),
         "genre": f"{data["Original_CSV_Data"]["Genre"]}",
         "is_rentable": True,
-        "rental_price": 4.99
+        "rental_price": 4.99,
+        "thumbnail_16x9": str(thumbnail_16_9)
     }
     try:
         response = requests.patch(f"{SUPABASE_URL}/videos?id=eq.{video_id}", headers=headers, json=video_data)

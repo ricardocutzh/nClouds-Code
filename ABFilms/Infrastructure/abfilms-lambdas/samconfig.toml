@@ -6,7 +6,7 @@ stack_name = "abfilms-vod-pipeline-dev-lambdas"
 parameter_overrides = "Identifier=\"vod-pipeline\" Environment=\"dev\" IngestS3BucketName=\"abfilms-us-east-1-412393146416-nclouds-ingest\""
 confirm_changeset = false
 fail_on_empty_changeset = false
-capabilities = "CAPABILITY_IAM"
+capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
 region = "us-east-1"
 tags = "Project=vod-pipeline Environment=dev ManagedBy=SAM Owner=abfilms SourceCodeProject=Infrastructure/abfilms-lambdas"
 
@@ -15,6 +15,6 @@ tags = "Project=vod-pipeline Environment=dev ManagedBy=SAM Owner=abfilms SourceC
 stack_name = "abfilms-vod-pipeline-prod-lambdas"
 confirm_changeset = true
 fail_on_empty_changeset = true
-capabilities = "CAPABILITY_IAM"
+capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
 region = "us-east-1"
 tags = "Project=vod-pipeline Environment=prod ManagedBy=SAM Owner=abfilms SourceCodeProject=Infrastructure/abfilms-lambdas"

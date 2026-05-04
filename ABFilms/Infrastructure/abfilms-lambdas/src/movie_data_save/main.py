@@ -27,6 +27,7 @@ def drm_enabled():
 
 def update_videos(data, video_id):
     thumbnail = data["UserMetadata"]["PosterUrl"]
+    thumbnail_16_9 = data["UserMetadata"]["Thumbnail16_9Url"]
     trailer_url = "" if str(data["Original_CSV_Data"]["Trailer"]) == "No" else str(data["UserMetadata"]["TrailerUrl"])
     video_data = {
         "title": f"{data["Original_CSV_Data"]["Movie/Show Title"]}",
@@ -50,7 +51,8 @@ def update_videos(data, video_id):
         "production_company": str(data["Original_CSV_Data"]["Studio"]),
         "genre": f"{data["Original_CSV_Data"]["Genre"]}",
         "is_rentable": True,
-        "rental_price": 4.99
+        "rental_price": 4.99,
+        "thumbnail_16x9": str(thumbnail_16_9)
     }
     try:
         response = requests.patch(f"{SUPABASE_URL}/videos?id=eq.{video_id}", headers=headers, json=video_data)
@@ -88,6 +90,7 @@ def save_video(data):
     # save the video if episode does not exist in the video table
     # return video_id
     thumbnail = data["UserMetadata"]["PosterUrl"]
+    thumbnail_16_9 = data["UserMetadata"]["Thumbnail16_9Url"]
     trailer_url = "" if str(data["Original_CSV_Data"]["Trailer"]) == "No" else str(data["UserMetadata"]["TrailerUrl"])
     video_data = {
         "title": f"{data["Original_CSV_Data"]["Movie/Show Title"]}",
@@ -113,7 +116,8 @@ def save_video(data):
         "genre": f"{data["Original_CSV_Data"]["Genre"]}",
         "genre": "Test",
         "is_rentable": True,
-        "rental_price": 4.99
+        "rental_price": 4.99,
+        "thumbnail_16x9": str(thumbnail_16_9)
     }
     
     logger.info(json.dumps(video_data))

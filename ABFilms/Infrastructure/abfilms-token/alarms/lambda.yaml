@@ -1,0 +1,75 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  Environment:
+    Type: String
+  Identifier:
+    Type: String
+  LambdaName:
+    Type: String
+  AlarmSuffix:
+    Type: String
+  AlarmActionArn:
+    Type: String
+    Description: The ARN of the Lambda or SNS topic to trigger on alarm.
+  AlarmDescription:
+    Type: String
+    Default: "No description provided for this alarm."
+    Description: A description to include in the created CloudWatch Alarms.
+
+Resources:
+  ErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "abfilms-${Identifier}-${Environment}-${AlarmSuffix}-Error"
+      AlarmDescription: !Sub |
+        Error alarm for ${LambdaName} in ${Environment}
+
+        Description:
+        ${AlarmDescription}
+
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      # Trigger when state changes to ALARM
+      AlarmActions:
+        - !Ref AlarmActionArn
+      # --- ADDED: Trigger when state changes to OK ---
+      OKActions:
+        - !Ref AlarmActionArn
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref LambdaName
+      TreatMissingData: notBreaching
+
+  ThrottleAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "abfilms-${Identifier}-${Environment}-${AlarmSuffix}-Throttle"
+      AlarmDescription: !Sub |
+        Error alarm for ${LambdaName} in ${Environment}
+
+        Description:
+        ${AlarmDescription}
+      MetricName: Throttles
+      Namespace: AWS/Lambda
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      # Trigger when state changes to ALARM
+      AlarmActions:
+        - !Ref AlarmActionArn
+      # --- ADDED: Trigger when state changes to OK ---
+      OKActions:
+        - !Ref AlarmActionArn
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref LambdaName
+      TreatMissingData: notBreaching

@@ -3,5 +3,8 @@
     "Environment": "prod",
     "SlackWebHookUrl": "prod/abfilms-vod-pipeline/monitoring/slack-webhook",
     "EmailAddress1": "ricardo@nclouds.com",
-    "NotifyViaEmail": "False"
+    "EmailAddress2": "bryce@abfilmstv.com",
+    "EmailAddress3": "mdg@abfilmstv.com",
+    "EmailAddress4": "nathan@abfilmstv.com",
+    "NotifyViaEmail": "True"
 }

@@ -1,0 +1,69 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: AWS CloudWatch Dashboard Widgets for ABFilms Monitoring
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+  Identifier:
+    Type: String
+    Description: Unique identifier for naming resources
+
+Conditions:
+  IsProd: !Equals [!Ref Environment, "prod"]
+
+Resources:
+
+  StateMachineWidgetLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "abfilms-${Identifier}-${Environment}-state-machine-widget/logs"
+      RetentionInDays: !If [IsProd, 90, 7]
+
+  StateMachineWidgetFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "abfilms-${Identifier}-${Environment}-state-machine-widget"
+      Handler: main.lambda_handler
+      Runtime: python3.13
+      CodeUri: src/statemachines/
+      Timeout: 300
+      LoggingConfig:
+        LogGroup: !Ref StateMachineWidgetLogGroup
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - states:DescribeStateMachine
+                - states:DescribeStateMachineForExecution
+                - states:DescribeExecution
+                - states:DescribeMapRun
+                - states:DescribeActivity
+                - states:ListStateMachines
+                - states:ListExecutions
+                - states:ListMapRuns
+                - states:ListActivities
+                - states:ListTagsForResource
+                - states:GetExecutionHistory
+              Resource: "*"
+
+  S3OutputWidgetLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "abfilms-${Identifier}-${Environment}-s3-output-widget/logs"
+      RetentionInDays: !If [IsProd, 90, 7]
+
+  S3OutputWidgetFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "abfilms-${Identifier}-${Environment}-s3-output-widget"
+      Handler: main.lambda_handler
+      Runtime: python3.13
+      Timeout: 300
+      CodeUri: src/s3-output/
+      LoggingConfig:
+        LogGroup: !Ref S3OutputWidgetLogGroup
+      Policies:
+        - S3ReadPolicy:
+            BucketName: "*"

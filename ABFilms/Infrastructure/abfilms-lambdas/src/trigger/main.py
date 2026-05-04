@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 import boto3
 import csv
 import os
@@ -149,7 +150,7 @@ def lambda_handler(event, context):
 
             safe_name = f"pln-{d["Program Type"].lower()}-{str(environment)}-{d["Movie/Show Title"].replace(" ", "")}-sku_{sku}-{short_hash}"
             
-            safe_name = safe_name.replace(":", "")
+            safe_name = re.sub(r'[^a-zA-Z0-9_\-]', '', safe_name)[:80]
 
             if d["Program Type"] == "Movie":
                 movie_subtitles_captions_languages = d["Movie Subtitles/Captions Languages"].replace(" ", "").split(",")

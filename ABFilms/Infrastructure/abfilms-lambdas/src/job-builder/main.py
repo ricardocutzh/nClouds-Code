@@ -2,6 +2,7 @@ import json
 import logging
 import boto3
 import os
+import re
 from jinja2 import Template
 import pycountry
 
@@ -14,27 +15,27 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 # reference here: https://docs.aws.amazon.com/sdk-for-ruby/v2/api/Aws/MediaConvert/Types/HlsCaptionLanguageMapping.html
-# language_codes = [
-#     "ENG", "SPA", "FRA", "DEU", "GER", "ZHO", "ARA", "HIN", "JPN", "RUS", 
-#     "POR", "ITA", "URD", "VIE", "KOR", "PAN", "ABK", "AAR", "AFR", "AKA", 
-#     "SQI", "AMH", "ARG", "HYE", "ASM", "AVA", "AVE", "AYM", "AZE", "BAM", 
-#     "BAK", "EUS", "BEL", "BEN", "BIH", "BIS", "BOS", "BRE", "BUL", "MYA", 
-#     "CAT", "KHM", "CHA", "CHE", "NYA", "CHU", "CHV", "COR", "COS", "CRE", 
-#     "HRV", "CES", "DAN", "DIV", "NLD", "DZO", "ENM", "EPO", "EST", "EWE", 
-#     "FAO", "FIJ", "FIN", "FRM", "FUL", "GLA", "GLG", "LUG", "KAT", "ELL", 
-#     "GRN", "GUJ", "HAT", "HAU", "HEB", "HER", "HMO", "HUN", "ISL", "IDO", 
-#     "IBO", "IND", "INA", "ILE", "IKU", "IPK", "GLE", "JAV", "KAL", "KAN", 
-#     "KAU", "KAS", "KAZ", "KIK", "KIN", "KIR", "KOM", "KON", "KUA", "KUR", 
-#     "LAO", "LAT", "LAV", "LIM", "LIN", "LIT", "LUB", "LTZ", "MKD", "MLG", 
-#     "MSA", "MAL", "MLT", "GLV", "MRI", "MAR", "MAH", "MON", "NAU", "NAV", 
-#     "NDE", "NBL", "NDO", "NEP", "SME", "NOR", "NOB", "NNO", "OCI", "OJI", 
-#     "ORI", "ORM", "OSS", "PLI", "FAS", "POL", "PUS", "QUE", "QAA", "RON", 
-#     "ROH", "RUN", "SMO", "SAG", "SAN", "SRD", "SRB", "SNA", "III", "SND", 
-#     "SIN", "SLK", "SLV", "SOM", "SOT", "SUN", "SWA", "SSW", "SWE", "TGL", 
-#     "TAH", "TGK", "TAM", "TAT", "TEL", "THA", "BOD", "TIR", "TON", "TSO", 
-#     "TSN", "TUR", "TUK", "TWI", "UIG", "UKR", "UZB", "VEN", "VOL", "WLN", 
-#     "CYM", "FRY", "WOL", "XHO", "YID", "YOR", "ZHA", "ZUL", "ORJ", "QPC", "TNG"
-# ]
+MEDIACONVERT_SUPPORTED_CODES = {
+    "ENG", "SPA", "FRA", "DEU", "GER", "ZHO", "ARA", "HIN", "JPN", "RUS",
+    "POR", "ITA", "URD", "VIE", "KOR", "PAN", "ABK", "AAR", "AFR", "AKA",
+    "SQI", "AMH", "ARG", "HYE", "ASM", "AVA", "AVE", "AYM", "AZE", "BAM",
+    "BAK", "EUS", "BEL", "BEN", "BIH", "BIS", "BOS", "BRE", "BUL", "MYA",
+    "CAT", "KHM", "CHA", "CHE", "NYA", "CHU", "CHV", "COR", "COS", "CRE",
+    "HRV", "CES", "DAN", "DIV", "NLD", "DZO", "ENM", "EPO", "EST", "EWE",
+    "FAO", "FIJ", "FIN", "FRM", "FUL", "GLA", "GLG", "LUG", "KAT", "ELL",
+    "GRN", "GUJ", "HAT", "HAU", "HEB", "HER", "HMO", "HUN", "ISL", "IDO",
+    "IBO", "IND", "INA", "ILE", "IKU", "IPK", "GLE", "JAV", "KAL", "KAN",
+    "KAU", "KAS", "KAZ", "KIK", "KIN", "KIR", "KOM", "KON", "KUA", "KUR",
+    "LAO", "LAT", "LAV", "LIM", "LIN", "LIT", "LUB", "LTZ", "MKD", "MLG",
+    "MSA", "MAL", "MLT", "GLV", "MRI", "MAR", "MAH", "MON", "NAU", "NAV",
+    "NDE", "NBL", "NDO", "NEP", "SME", "NOR", "NOB", "NNO", "OCI", "OJI",
+    "ORI", "ORM", "OSS", "PLI", "FAS", "POL", "PUS", "QUE", "QAA", "RON",
+    "ROH", "RUN", "SMO", "SAG", "SAN", "SRD", "SRB", "SNA", "III", "SND",
+    "SIN", "SLK", "SLV", "SOM", "SOT", "SUN", "SWA", "SSW", "SWE", "TGL",
+    "TAH", "TGK", "TAM", "TAT", "TEL", "THA", "BOD", "TIR", "TON", "TSO",
+    "TSN", "TUR", "TUK", "TWI", "UIG", "UKR", "UZB", "VEN", "VOL", "WLN",
+    "CYM", "FRY", "WOL", "XHO", "YID", "YOR", "ZHA", "ZUL", "ORJ", "QPC", "TNG",
+}
 
 def setup_drm_encryption(result_object, resource_id):
     for og in result_object["Settings"]["OutputGroups"]:
@@ -79,7 +80,12 @@ def map_to_mediaconvert_lang(input_code):
     }
     
     if raw_code in overrides:
-        return overrides[raw_code]
+        result = overrides[raw_code]
+        if result["LanguageCode"] in MEDIACONVERT_SUPPORTED_CODES:
+            result["LanguageDescription"] = re.sub(r'[^A-Za-z0-9_ ]', '', result["LanguageDescription"])
+            return result
+        logger.warning(f">> Function: map_to_mediaconvert_lang: Resolved code '{result['LanguageCode']}' for input '{input_code}' is not supported by MediaConvert, skipping language mapping.")
+        return None
 
     # 3. Dynamic Lookup using pycountry
     try:
@@ -88,16 +94,20 @@ def map_to_mediaconvert_lang(input_code):
         
         # MediaConvert prefers the 'terminology' code (3 letters)
         # If terminology doesn't exist, fall back to alpha_3
-        mc_code = getattr(lang, 'terminology', lang.alpha_3)
+        mc_code = getattr(lang, 'terminology', lang.alpha_3).upper()
         mc_desc = lang.name
+
+        if mc_code not in MEDIACONVERT_SUPPORTED_CODES:
+            logger.warning(f">> Function: map_to_mediaconvert_lang: Resolved code '{mc_code}' for input '{input_code}' is not supported by MediaConvert, skipping language mapping.")
+            return None
         
         return {
-            "LanguageCode": mc_code.upper(), 
-            "LanguageDescription": mc_desc
+            "LanguageCode": mc_code, 
+            "LanguageDescription": re.sub(r'[^A-Za-z0-9_ ]', '', mc_desc)
         }
-    except Exception as e:
-        logger.error(f">> Function: map_to_mediaconvert_lang: {str(e)}")
-        raise Exception(f">> Function: map_to_mediaconvert_lang: {str(e)}")
+    except LookupError:
+        logger.warning(f">> Function: map_to_mediaconvert_lang: Unsupported language code '{input_code}', skipping language mapping.")
+        return None
 
 def generate_captions(subtitles_data, input_bucket, input_folder):
 
