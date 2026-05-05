@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  srs:
+    image: ossrs/srs:6
+    container_name: srs_server
+    ports:
+      - "1935:1935"   # RTMP Ingest
+      - "1985:1985"   # HTTP API
+      - "8080:8080"   # HTTP HLS Playback
+    volumes:
+      - ./srs-server/srs.conf:/usr/local/srs/conf/srs.conf
+      - ./srs-server/hls_segments:/usr/local/srs/objs/nginx/html
+    restart: always
+
+  srs-dashboard:
+    build: ./srs-dashboard
+    container_name: srs_visual_ui
+    ports:
+      - "3000:3000"
+    environment:
+      - SRS_URL=http://srs:1985
+    depends_on:
+      - srs
+    restart: always
+
+  srs-debug:
+    build: ./srs-debug
+    container_name: srs_payload_debugger
+    ports:
+      - "3001:3001"
+    restart: always

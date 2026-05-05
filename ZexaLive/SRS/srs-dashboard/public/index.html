@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SRS Stream Monitor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white p-8">
+    <div class="max-w-6xl mx-auto">
+        <div class="flex justify-between items-center mb-10">
+            <h1 class="text-3xl font-bold text-blue-500 tracking-tight">📊 SRS Live Stats</h1>
+            <div class="flex gap-4">
+                <div class="bg-gray-800 border border-gray-700 px-4 py-2 rounded-lg">
+                    <span class="text-gray-500 text-xs block uppercase">CPU Load</span>
+                    <span id="cpu" class="text-xl font-mono text-blue-400">--</span>
+                </div>
+                <div class="bg-gray-800 border border-gray-700 px-4 py-2 rounded-lg">
+                    <span class="text-gray-500 text-xs block uppercase">Memory Usage</span>
+                    <span id="mem" class="text-xl font-mono text-green-400">--</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gray-800 rounded-2xl border border-gray-700 shadow-2xl overflow-hidden">
+            <div class="p-5 bg-gray-700/30 flex justify-between items-center border-b border-gray-700">
+                <h2 class="font-bold text-gray-200">Active Streams</h2>
+                <span class="bg-blue-600 text-[10px] px-2 py-0.5 rounded-full font-bold"><span id="clients">0</span> VIEWERS</span>
+            </div>
+            <table class="w-full text-left">
+                <thead class="text-gray-400 text-xs uppercase tracking-widest bg-gray-900/50">
+                    <tr>
+                        <th class="p-5">Stream Path</th>
+                        <th class="p-5 text-center">Resolution</th>
+                        <th class="p-5">Input Bitrate</th>
+                        <th class="p-5 text-right">Viewers</th>
+                    </tr>
+                </thead>
+                <tbody id="stream-list" class="divide-y divide-gray-700">
+                    <tr><td colspan="4" class="p-20 text-center text-gray-500 italic text-lg">Waiting for incoming streams...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        async function updateDashboard() {
+            try {
+                // 1. Fetch System Summaries
+                const sumRes = await fetch('/api/summaries');
+                const sumData = await sumRes.json();
+                
+                if (sumData.data && sumData.data.self) {
+                    const self = sumData.data.self;
+                    document.getElementById('cpu').innerText = (self.cpu_percent || 0).toFixed(1) + '%';
+                    document.getElementById('mem').innerText = (self.mem_kbyte / 1024).toFixed(1) + ' MB';
+                }
+
+                // 2. Fetch Active Streams
+                const streamRes = await fetch('/api/streams');
+                const streamData = await streamRes.json();
+                
+                // SRS v6 stream array location
+                const streams = streamData.streams || (streamData.data && streamData.data.streams) || [];
+                const list = document.getElementById('stream-list');
+                const clientsCount = document.getElementById('clients');
+                
+                list.innerHTML = '';
+                let totalViewers = 0;
+
+                if (streams.length > 0) {
+                    streams.forEach(s => {
+                        totalViewers += s.clients;
+                        const bitrate = (s.kbps && s.kbps.recv_30s) ? s.kbps.recv_30s : 0;
+                        const res = s.video ? `${s.video.width}x${s.video.height}` : 'N/A';
+                        
+                        list.innerHTML += `
+                            <tr class="hover:bg-gray-700/20 transition-colors">
+                                <td class="p-5 font-bold text-blue-300">/${s.app}/${s.name}</td>
+                                <td class="p-5 text-center"><span class="bg-gray-900 px-3 py-1 rounded text-xs border border-gray-600">${res}</span></td>
+                                <td class="p-5 text-green-400 font-mono">${bitrate} kbps</td>
+                                <td class="p-5 text-right font-bold text-lg">${s.clients}</td>
+                            </tr>`;
+                    });
+                } else {
+                    list.innerHTML = '<tr><td colspan="4" class="p-20 text-center text-gray-500 italic">No active streams detected.</td></tr>';
+                }
+                clientsCount.innerText = totalViewers;
+
+            } catch (e) { console.error("Dashboard Sync Error:", e); }
+        }
+
+        setInterval(updateDashboard, 2000);
+        updateDashboard();
+    </script>
+</body>
+</html>
