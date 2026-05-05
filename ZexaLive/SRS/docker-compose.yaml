@@ -9,24 +9,15 @@ services:
       - "1985:1985"   # HTTP API
       - "8080:8080"   # HTTP HLS Playback
     volumes:
-      - ./srs-server/srs.conf:/usr/local/srs/conf/srs.conf
+      - ./srs-server/conf:/usr/local/srs/conf
       - ./srs-server/hls_segments:/usr/local/srs/objs/nginx/html
     restart: always
 
-  srs-dashboard:
-    build: ./srs-dashboard
-    container_name: srs_visual_ui
-    ports:
-      - "3000:3000"
-    environment:
-      - SRS_URL=http://srs:1985
-    depends_on:
-      - srs
-    restart: always
-
-  srs-debug:
+  srs-app:
     build: ./srs-debug
-    container_name: srs_payload_debugger
+    container_name: srs_management_app
+    environment:
+      - PYTHONUNBUFFERED=1
     ports:
-      - "3001:3001"
+      - "3002:3001" # Host 3002 -> Container 3001
     restart: always
