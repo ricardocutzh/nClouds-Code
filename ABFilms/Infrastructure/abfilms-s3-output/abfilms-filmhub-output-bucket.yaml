@@ -60,7 +60,7 @@ Resources:
               - Access-Control-Request-Headers
               - Access-Control-Request-Method
           QueryStringsConfig:
-            QueryStringBehavior: none
+            QueryStringBehavior: all
 
   HLSOriginRequestPolicy:
     Type: AWS::CloudFront::OriginRequestPolicy
@@ -77,6 +77,28 @@ Resources:
             - Access-Control-Request-Method
         QueryStringsConfig:
           QueryStringBehavior: none
+
+  HLSResponsePolicy:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: !Sub "${AWS::StackName}-HLS-Response-Policy"
+        CorsConfig:
+          AccessControlAllowCredentials: false
+          AccessControlAllowHeaders:
+            Items:
+              - '*'
+          AccessControlAllowMethods:
+            Items:
+              - GET
+              - HEAD
+              - OPTIONS
+          AccessControlAllowOrigins:
+            Items:
+              - https://preview--stream-vault-secure-play.lovable.app
+              - https://abfilmstv.com
+          AccessControlMaxAgeSec: 120
+          OriginOverride: true
 
   AbfilmsHLSDistribution:
     Type: AWS::CloudFront::Distribution
@@ -97,6 +119,7 @@ Resources:
           CachedMethods: [GET, HEAD]
           CachePolicyId: !Ref HLSCachePolicy
           OriginRequestPolicyId: !Ref HLSOriginRequestPolicy
+          ResponseHeadersPolicyId: !Ref HLSResponsePolicy
 
   OutputBucketPolicy:
     Type: AWS::S3::BucketPolicy

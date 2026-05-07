@@ -185,6 +185,7 @@ def add_metadata(type, result_object, original_data):
 
     metadata = {}
     MasterFileUrl = None
+    MasterFileUrlM3U8 = None
 
     if type == "show":
         Season = f"Season_{original_data["Season Number"].replace(" ", "")}"
@@ -193,8 +194,10 @@ def add_metadata(type, result_object, original_data):
         Title = original_data["Movie/Show Title"].replace(" ", "_")
         if drm_api_endpoint != "NOT_SET" and drm_system_ids != "NOT_SET":
             MasterFileUrl = f"https://{cf_endpoint}/Shows/{Title}/{Season}/{EpisodeNumber}_{EpisodeName}_{original_data["Episode SKU"]}/output/cmaf/index.mpd"
+            MasterFileUrlM3U8 = f"https://{cf_endpoint}/Shows/{Title}/{Season}/{EpisodeNumber}_{EpisodeName}_{original_data["Episode SKU"]}/output/cmaf/index.m3u8"
         else: 
             MasterFileUrl = f"https://{cf_endpoint}/Shows/{Title}/{Season}/{EpisodeNumber}_{EpisodeName}/output/cmaf/index.mpd"
+            MasterFileUrlM3U8 = f"https://{cf_endpoint}/Shows/{Title}/{Season}/{EpisodeNumber}_{EpisodeName}/output/cmaf/index.m3u8"
         metadata = {
             "Type": "Show",
             "Environment": str(environment),
@@ -202,20 +205,24 @@ def add_metadata(type, result_object, original_data):
             "Episode": str(EpisodeNumber),
             "Episode Name": str(EpisodeName),
             "Title": str(Title),
-            "MasterFileURL": str(MasterFileUrl)
+            "MasterFileURL": str(MasterFileUrl),
+            "MasterFileURLM3U8": str(MasterFileUrlM3U8)
         }
         
     if type == "movie":
         Title = original_data["Movie/Show Title"].replace(" ", "_")
         if drm_api_endpoint != "NOT_SET" and drm_system_ids != "NOT_SET":
             MasterFileUrl = f"https://{cf_endpoint}/Movies/{Title}_{original_data["Movie/Show Filmhub SKU"]}/output/cmaf/index.mpd"
+            MasterFileUrlM3U8 = f"https://{cf_endpoint}/Movies/{Title}_{original_data["Movie/Show Filmhub SKU"]}/output/cmaf/index.m3u8"
         else: 
             MasterFileUrl = f"https://{cf_endpoint}/Movies/{Title}/output/cmaf/index.mpd"
+            MasterFileUrlM3U8 = f"https://{cf_endpoint}/Movies/{Title}/output/cmaf/index.m3u8"
         metadata = {
             "Type": "Movie",
             "Environment": str(environment),
             "Title": str(Title),
-            "MasterFileURL": str(MasterFileUrl)
+            "MasterFileURL": str(MasterFileUrl),
+            "MasterFileURLM3U8": str(MasterFileUrlM3U8)
         }
 
     result_object["UserMetadata"] = metadata

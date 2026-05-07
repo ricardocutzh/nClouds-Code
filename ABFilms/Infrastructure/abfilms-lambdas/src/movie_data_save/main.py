@@ -36,6 +36,7 @@ def update_videos(data, video_id):
         "category": f"{data["Original_CSV_Data"]["Genre"]}",
         "thumbnail": str(thumbnail),
         "video_url": f"{data["UserMetadata"]["MasterFileURL"]}",
+        "video_url_m3u8": f"{data["UserMetadata"]["MasterFileURLM3U8"]}",
         "drm_protected": drm_enabled(),
         "drm_license_url": str(DRM_LICENCE_URL),
         "featured": True, # need to ask the value for this
@@ -100,6 +101,7 @@ def save_video(data):
         "category": f"Test",
         "thumbnail": str(thumbnail),
         "video_url": f"{data["UserMetadata"]["MasterFileURL"]}",
+        "video_url_m3u8": f"{data["UserMetadata"]["MasterFileURLM3U8"]}",
         "drm_protected": drm_enabled(),
         "drm_license_url": str(DRM_LICENCE_URL),
         "featured": True, # need to ask the value for this
