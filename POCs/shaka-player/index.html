@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Shaka Player FairPlay DRMToday</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.3.5/shaka-player.compiled.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #1a1a1a; color: #fff; padding: 20px; text-align: center; }
+        video { width: 100%; max-width: 800px; background: #000; border: 2px solid #444; }
+        #debug-console { 
+            margin-top: 20px; text-align: left; background: #000; color: #0d0; 
+            padding: 15px; font-family: monospace; font-size: 11px; 
+            height: 300px; overflow-y: scroll; border: 1px solid #555;
+        }
+    </style>
+</head>
+<body>
+    <h2>Shaka Player + DRMToday (FairPlay)</h2>
+    <video id="video" controls autoplay playsinline></video>
+    <div id="debug-console">--- Playback Logs ---<br></div>
+
+    <script>
+        const logBox = document.getElementById('debug-console');
+        function debugLog(msg, color = "#0d0") {
+            const time = new Date().toLocaleTimeString();
+            logBox.innerHTML += `<span style="color:${color}">[${time}] ${msg}</span><br>`;
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        const ASSET_ID = '0004-9498';
+        const MANIFEST_URL = 'https://d27y62lnm1dcpo.cloudfront.net/Movies/A_Perfect_Match_xx8h-ijwt/output/cmaf/index.m3u8';
+        const TOKEN_URL = 'https://aau8hlwb58.execute-api.us-east-1.amazonaws.com/prod/token';
+        const CERT_URL = 'https://lic.drmtoday.com/license-server-fairplay/cert/abfilms'; 
+        const LICENSE_URL = 'https://lic.drmtoday.com/license-proxy-fairplay/cenc/';
+
+        async function initApp() {
+            // 1. Install FairPlay and EME polyfills for Safari
+            shaka.polyfill.installAll();
+
+            const video = document.getElementById('video');
+            const player = new shaka.Player(video);
+
+            // 2. Fetch Auth Token
+            let authToken;
+            try {
+                debugLog("NET: Fetching Token...");
+                const response = await fetch(TOKEN_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ "AssetId": ASSET_ID })
+                });
+                const data = await response.json();
+                authToken = data.token || data.ticket || data;
+                debugLog("NET: Token loaded successfully.");
+            } catch (err) {
+                debugLog("NET ERROR: Token fetch failed.", "#ff0000");
+                return;
+            }
+
+            // 3. Configure DRM
+            player.configure({
+                drm: {
+                    servers: { 'com.apple.fps.1_0': LICENSE_URL },
+                    advanced: {
+                        'com.apple.fps.1_0': {
+                            // Shaka fetches and processes binary DER automatically
+                            serverCertificateUri: CERT_URL 
+                        }
+                    },
+                    // Transform skd:// URI into contentId for the license server
+                    initDataTransform: (initData, initDataType, drmInfo) => {
+                        if (initDataType !== 'skd') return initData;
+                        const skdUri = shaka.util.StringUtils.fromBytesAutoDetect(initData);
+                        // Extract assetId from URI: skd://drmtoday?assetId=0004-9498
+                        const contentId = skdUri.split('assetId=')[1] || ASSET_ID;
+                        debugLog(`DRM: Handshaking with ContentID: ${contentId}`);
+                        return shaka.util.FairPlayUtils.initDataTransform(initData, contentId, drmInfo.serverCertificate);
+                    }
+                }
+            });
+
+            // 4. Request Filter for DRMToday Headers
+            player.getNetworkingEngine().registerRequestFilter((type, request) => {
+                if (type === shaka.net.NetworkingEngine.RequestType.LICENSE) {
+                    debugLog("DRM: Triggering License Request...");
+                    request.headers['x-dt-auth-token'] = authToken;
+                    request.headers['x-dt-asset-id'] = ASSET_ID;
+                }
+            });
+
+            // 5. Load Content
+            try {
+                await player.load(MANIFEST_URL);
+                debugLog("API: Playback Initialized Successfully.", "#00ff00");
+            } catch (e) {
+                debugLog(`FATAL ERROR: ${e.code} - See console for details.`, "#ff0000");
+                console.error('Shaka Error:', e);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>

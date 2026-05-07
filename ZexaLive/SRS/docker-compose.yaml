@@ -18,6 +18,21 @@ services:
     container_name: srs_management_app
     environment:
       - PYTHONUNBUFFERED=1
+    env_file:
+      - .env
     ports:
       - "3002:3001" # Host 3002 -> Container 3001
     restart: always
+    volumes:
+      - ./srs-server/hls_segments:/tmp/hls
+
+  # s3-sidecar:
+  #   build: ./srs-s3-sync
+  #   container_name: srs_s3_sync
+  #   env_file:
+  #     - .env
+  #   volumes:
+  #     - ./srs-server/hls_segments:/src:ro # Read-only mount of the HLS segments
+  #   depends_on:
+  #     - srs
+  #   restart: always

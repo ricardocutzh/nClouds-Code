@@ -16,7 +16,7 @@ networking_config:
           to_port: -1
           protocol: -1
           description: Test Rule
-          cidr_blocks: 181.189.154.125/32 ## MY LOCAL IP
+          cidr_blocks: 190.148.209.58/32 ## MY LOCAL IP
       ingress_self:
         - from_port: 2049
           to_port: 2049

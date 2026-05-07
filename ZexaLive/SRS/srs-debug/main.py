@@ -2,18 +2,87 @@ import sys
 import json
 import secrets
 import requests
+import os
+import time
+import boto3
 from flask import Flask, request, jsonify, render_template_string
+import threading
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 
 app = Flask(__name__)
 
 # --- CONFIGURATION ---
-# Internal SRS API URL (Uses the service name from docker-compose)
 SRS_API_URL = "http://srs:1985/api/v1"
+HLS_BASE_PATH = "/tmp/hls"
 
-# In-Memory Database structure: { "app_name": { "room_name": "key" } }
+# AWS Configuration from Environment Variables
+S3_BUCKET = os.environ.get('S3_BUCKET')
+s3_client = boto3.client(
+    's3',
+    region_name=os.environ.get('AWS_DEFAULT_REGION', 'us-east-1')
+)
+
+# In-Memory Database
 data_store = {
     "live": {"room1": "default-key-123"}
 }
+
+class HlsSyncHandler(FileSystemEventHandler):
+    """
+    Watches /tmp/hls and syncs any new or modified file to S3.
+    """
+    def on_modified(self, event):
+        if not event.is_directory:
+            self.sync_to_s3(event.src_path)
+
+    def on_created(self, event):
+        if not event.is_directory:
+            self.sync_to_s3(event.src_path)
+
+    def sync_to_s3(self, local_path):
+        # We only care about .ts and .m3u8 files
+        if not local_path.endswith(('.ts', '.m3u8')):
+            return
+
+        # Calculate S3 Key: /tmp/hls/app/stream/file.ts -> app/stream/file.ts
+        relative_path = os.path.relpath(local_path, HLS_BASE_PATH)
+        
+        try:
+            # Set specific metadata based on file type
+            extra_args = {}
+            if local_path.endswith('.m3u8'):
+                extra_args = {
+                    'ContentType': 'application/vnd.apple.mpegurl',
+                    'CacheControl': 'no-cache, no-store, must-revalidate'
+                }
+            elif local_path.endswith('.ts'):
+                extra_args = {'ContentType': 'video/MP2T'}
+
+            # Small delay to ensure SRS has finished writing the file
+            time.sleep(0.5) 
+            
+            s3_client.upload_file(local_path, S3_BUCKET, relative_path, ExtraArgs=extra_args)
+            print(f"☁️  S3 SYNC: {relative_path}", file=sys.stderr)
+        except Exception as e:
+            print(f"❌ S3 Sync Error ({relative_path}): {str(e)}", file=sys.stderr)
+
+def start_watcher():
+    """Initializes the background thread for file watching"""
+    # Ensure directory exists before watching
+    if not os.path.exists(HLS_BASE_PATH):
+        os.makedirs(HLS_BASE_PATH, exist_ok=True)
+        
+    observer = Observer()
+    observer.schedule(HlsSyncHandler(), HLS_BASE_PATH, recursive=True)
+    observer.start()
+    print(f"👀 Watcher started on {HLS_BASE_PATH}", file=sys.stderr)
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        observer.stop()
+    observer.join()
 
 # --- UNIFIED DASHBOARD UI (Tailwind CSS) ---
 DASHBOARD_HTML = """
@@ -235,29 +304,25 @@ DASHBOARD_HTML = """
 
 @app.route('/')
 def dashboard():
-    """Serves the Unified Dashboard UI"""
     return render_template_string(DASHBOARD_HTML)
 
 # --- 1. SRS API PROXY ---
 @app.route('/proxy/<endpoint>')
 def srs_proxy(endpoint):
-    """Bypasses CORS by fetching SRS data server-side"""
     try:
         r = requests.get(f"{SRS_API_URL}/{endpoint}")
         return jsonify(r.json())
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# --- 2. MANAGEMENT API ---
+# --- 2. MANAGEMENT API (Keep your existing routes) ---
 @app.route('/api/data')
-def get_data(): 
-    return jsonify(data_store)
+def get_data(): return jsonify(data_store)
 
 @app.route('/api/apps', methods=['POST'])
 def create_app():
     name = request.json.get('name')
-    if name and name not in data_store:
-        data_store[name] = {}
+    if name and name not in data_store: data_store[name] = {}
     return "OK", 200
 
 @app.route('/api/apps/<name>', methods=['DELETE'])
@@ -274,44 +339,115 @@ def create_room(app_name):
 
 @app.route('/api/apps/<app_name>/rooms/<room_name>', methods=['DELETE'])
 def delete_room(app_name, room_name):
-    if app_name in data_store:
-        data_store[app_name].pop(room_name, None)
+    if app_name in data_store: data_store[app_name].pop(room_name, None)
     return "OK", 200
 
-# --- 3. SRS AUTHENTICATION HOOKS ---
+# --- 3. SRS AUTHENTICATION & VOD FINALIZATION ---
 @app.route('/on_publish', methods=['POST'])
 def on_publish():
-    """Called by SRS to authorize a stream"""
     payload = request.json
-    
-    # Debug: Print full payload to console
-    print(f"\\n--- AUTH ATTEMPT ---", file=sys.stderr)
-    print(json.dumps(payload, indent=2), file=sys.stderr)
+    req_app, req_room, param = payload.get('app'), payload.get('stream'), payload.get('param', '')
+    provided_key = param.split('key=')[1].split('&')[0] if 'key=' in param else None
 
-    req_app = payload.get('app')
-    req_room = payload.get('stream')
-    param = payload.get('param', '')
-
-    # Extract key from param string (?key=...)
-    provided_key = None
-    if 'key=' in param:
-        provided_key = param.split('key=')[1].split('&')[0]
-
-    # Evaluation
     if req_app in data_store and req_room in data_store[req_app]:
         if data_store[req_app][req_room] == provided_key:
             print(f"✅ GRANTED: {req_app}/{req_room}", file=sys.stderr)
             return "0", 200
     
-    print(f"❌ DENIED: {req_app}/{req_room} (Key: {provided_key})", file=sys.stderr)
+    print(f"❌ DENIED: {req_app}/{req_room}", file=sys.stderr)
     return "1", 403
 
 @app.route('/on_unpublish', methods=['POST'])
 def on_unpublish():
-    """Called by SRS when a stream ends"""
-    print(f"⏹️ OFFLINE: {request.json.get('app')}/{request.json.get('stream')}", file=sys.stderr)
+    """Finalizes the HLS playlist and uploads the VOD manifest to S3"""
+    payload = request.json
+    app_name = payload.get('app')
+    stream_name = payload.get('stream')
+    
+    local_m3u8 = f"{HLS_BASE_PATH}/{app_name}/{stream_name}/index.m3u8"
+    s3_key = f"{app_name}/{stream_name}/index.m3u8"
+
+    print(f"⏹️ OFFLINE: {app_name}/{stream_name}. Finalizing VOD...", file=sys.stderr)
+
+    # 1. Wait briefly for SRS to flush the last segment to disk
+    time.sleep(5)
+
+    if os.path.exists(local_m3u8):
+        try:
+            # 2. Append VOD tags locally
+            with open(local_m3u8, 'r') as f:
+                content = f.read()
+            
+            if "#EXT-X-ENDLIST" not in content:
+                with open(local_m3u8, 'a') as f:
+                    f.write("\n#EXT-X-PLAYLIST-TYPE:VOD\n")
+                    f.write("#EXT-X-ENDLIST\n")
+                print(f"📝 Appended VOD tags to {local_m3u8}", file=sys.stderr)
+
+            # 3. Upload the finalized manifest to S3
+            # We set Cache-Control to ensure browsers/CloudFront don't cache the old "live" version
+            s3_client.upload_file(
+                local_m3u8, S3_BUCKET, s3_key,
+                ExtraArgs={'ContentType': 'application/vnd.apple.mpegurl', 'CacheControl': 'no-cache, no-store, must-revalidate'}
+            )
+            print(f"🚀 Finalized VOD uploaded to S3: s3://{S3_BUCKET}/{s3_key}", file=sys.stderr)
+
+        except Exception as e:
+            print(f"❌ Error finalizing VOD: {str(e)}", file=sys.stderr)
+    else:
+        print(f"⚠️ Warning: {local_m3u8} not found. Skipping VOD finalization.", file=sys.stderr)
+
     return "0", 200
 
+# --- SRS HLS SYNC HOOK ---
+@app.route('/on_hls', methods=['POST'])
+def on_hls():
+    """
+    Called by SRS every time a new HLS segment (.ts) is created.
+    Syncs the new segment and the updated m3u8 to S3.
+    """
+    payload = request.json
+    
+    # 1. Parse useful information from the payload
+    app_name = payload.get('app')
+    stream_name = payload.get('stream')
+    ts_relative_path = payload.get('url')      # e.g., "live/livestream/segment-0.ts"
+    m3u8_relative_path = payload.get('m3u8_url') # e.g., "live/livestream/index.m3u8"
+    
+    # 2. Define local full paths (Mapped to your shared volume /tmp/hls)
+    # SRS sends 'file' and 'm3u8' paths relative to its own CWD. 
+    # We use the app/stream structure to find them in our mount.
+    local_ts_path = f"{HLS_BASE_PATH}/{ts_relative_path}"
+    local_m3u8_path = f"{HLS_BASE_PATH}/{m3u8_relative_path}"
+
+    print(f"📦 NEW SEGMENT: {ts_relative_path} (Seq: {payload.get('seq_no')})", file=sys.stderr)
+
+    try:
+        # 3. Upload the .ts Segment
+        if os.path.exists(local_ts_path):
+            s3_client.upload_file(
+                local_ts_path, S3_BUCKET, ts_relative_path,
+                ExtraArgs={'ContentType': 'video/MP2T'}
+            )
+        
+        # 4. Upload the updated .m3u8 Playlist
+        # We use Cache-Control: no-cache so the player always gets the latest live window
+        if os.path.exists(local_m3u8_path):
+            s3_client.upload_file(
+                local_m3u8_path, S3_BUCKET, m3u8_relative_path,
+                ExtraArgs={
+                    'ContentType': 'application/vnd.apple.mpegurl',
+                    'CacheControl': 'no-cache, no-store, must-revalidate'
+                }
+            )
+            
+        return "0", 200
+
+    except Exception as e:
+        print(f"❌ S3 Sync Error: {str(e)}", file=sys.stderr)
+        return "1", 500
+
 if __name__ == '__main__':
-    # Internal port remains 3001
+    watcher_thread = threading.Thread(target=start_watcher, daemon=True)
+    watcher_thread.start()
     app.run(host='0.0.0.0', port=3001)
